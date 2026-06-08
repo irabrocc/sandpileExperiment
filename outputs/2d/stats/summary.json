@@ -1,0 +1,25 @@
+{
+  "num_trials": 2000,
+  "N": 200,
+  "total_elapsed_sec": 3300.2,
+  "trials_per_sec": 0.61,
+  "topple_stats": {
+    "mean": 1344354.3475,
+    "median": 1407582.0,
+    "std": 258100.0165596948,
+    "min": 118408,
+    "max": 1799696
+  },
+  "distinct_site_stats": {
+    "mean": 40000.0,
+    "median": 40000.0,
+    "std": 0.0
+  },
+  "max_grains_overall": 3,
+  "distribution": [
+    83468,
+    329448,
+    1464850,
+    78122234
+  ]
+}

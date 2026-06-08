@@ -1,0 +1,20 @@
+{
+  "mode": "continuous_3d",
+  "n": 15,
+  "num_additions": 5000,
+  "skip_transient": 2000,
+  "initial_grains": 0,
+  "threshold": 6,
+  "elapsed_sec": 0.4,
+  "total_topples": 94,
+  "mean_avalanche_size": 0.0188,
+  "median_avalanche_size": 0.0,
+  "max_avalanche_size": 3,
+  "power_law_fit": {
+    "tau": 2.310350244299311,
+    "s_min": 1,
+    "n_samples": 85,
+    "stderr": 0.14212743919931878
+  },
+  "n_samples": 5000
+}

@@ -1,0 +1,18 @@
+{
+  "trials_completed": 2,
+  "elapsed_sec": 0.1,
+  "mean_topples": 1684.0,
+  "median_topples": 1684.0,
+  "max_topples": 1792,
+  "min_topples": 1576,
+  "mean_distinct_sites": 1000.0,
+  "max_grains_observed": 5,
+  "distribution": [
+    0,
+    4,
+    67,
+    390,
+    261,
+    1278
+  ]
+}

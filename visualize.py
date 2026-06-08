@@ -1,0 +1,1029 @@
+"""
+Visualization utilities for sandpile experiments.
+
+Supports 2D heatmaps, avalanche-size histograms, toppling-frequency
+maps, and 3D slice views.
+"""
+
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
+
+# ---------------------------------------------------------------------------
+# Colour map
+# ---------------------------------------------------------------------------
+
+# Discrete colour map for small grain counts (0-4 common, 5+ rare)
+_SAND_COLORS = [
+    "#ffffff",  # 0 – white  (empty)
+    "#ffe4b5",  # 1 – moccasin
+    "#f4a460",  # 2 – sandy brown
+    "#cd853f",  # 3 – peru
+    "#8b4513",  # 4 – saddle brown
+    "#ff4500",  # 5 – orange red
+    "#dc143c",  # 6 – crimson
+    "#800080",  # 7 – purple
+    "#000080",  # 8 – navy
+]
+SAND_CMAP = mcolors.ListedColormap(_SAND_COLORS[:4] + ["#ff4500"])
+# Extended version for higher grain counts
+SAND_CMAP_FULL = mcolors.ListedColormap(_SAND_COLORS)
+
+
+# ---------------------------------------------------------------------------
+# 2D visualisation
+# ---------------------------------------------------------------------------
+
+def plot_grid(grid: np.ndarray, title: str = "", save_path: str | None = None,
+              cmap=None, vmin: int = 0, vmax: int | None = None,
+              figsize: tuple = (8, 8), show_colorbar: bool = True):
+    """Plot a single 2D sandpile grid as a heatmap.
+
+    Parameters
+    ----------
+    grid : np.ndarray, shape (N, N)
+    title : str
+    save_path : str | None
+        If given, saves the figure to this path.
+    cmap : Colormap | None
+        Defaults to SAND_CMAP_FULL.
+    vmin, vmax : int
+        Color scale range.
+    figsize : tuple
+    show_colorbar : bool
+    """
+    if cmap is None:
+        cmap = SAND_CMAP_FULL
+    if vmax is None:
+        vmax = max(int(grid.max()), 4)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    im = ax.imshow(grid, cmap=cmap, vmin=vmin, vmax=vmax,
+                   interpolation="nearest", origin="upper")
+    ax.set_title(title, fontsize=14)
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+
+    if show_colorbar:
+        cbar = plt.colorbar(im, ax=ax, shrink=0.82, ticks=range(vmin, vmax + 1))
+        cbar.set_label("Grains")
+
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_grid_comparison(grids: list[np.ndarray], titles: list[str],
+                         save_path: str | None = None,
+                         ncols: int = 3, figsize_per: int = 4):
+    """Side-by-side comparison of multiple grids.
+
+    Parameters
+    ----------
+    grids : list of np.ndarray
+    titles : list of str
+    save_path : str | None
+    ncols : int
+    figsize_per : int
+        Figure size per subplot (inches).
+    """
+    n = len(grids)
+    nrows = (n + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols,
+                             figsize=(ncols * figsize_per, nrows * figsize_per))
+    axes = np.atleast_1d(axes).flatten()
+
+    vmax = max(int(g.max()) for g in grids)
+    vmax = max(vmax, 4)
+
+    for i, (g, t) in enumerate(zip(grids, titles)):
+        ax = axes[i]
+        ax.imshow(g, cmap=SAND_CMAP_FULL, vmin=0, vmax=vmax,
+                  interpolation="nearest", origin="upper")
+        ax.set_title(t, fontsize=10)
+        ax.axis("off")
+
+    # Hide unused axes
+    for j in range(n, len(axes)):
+        axes[j].set_visible(False)
+
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+# ---------------------------------------------------------------------------
+# Statistical plots
+# ---------------------------------------------------------------------------
+
+def plot_avalanche_size_histogram(topple_counts: list[int],
+                                  save_path: str | None = None,
+                                  bins: int | str = "auto",
+                                  log_scale: bool = True):
+    """Histogram of avalanche sizes (total topple counts per trial).
+
+    Parameters
+    ----------
+    topple_counts : list[int]
+    save_path : str | None
+    bins : int or 'auto'
+    log_scale : bool
+        Use log-log axes (common for power-law distributions).
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Linear scale
+    ax1 = axes[0]
+    ax1.hist(topple_counts, bins=bins, color="steelblue", edgecolor="white",
+             alpha=0.85)
+    ax1.set_xlabel("Avalanche size (total topples)")
+    ax1.set_ylabel("Frequency")
+    ax1.set_title("Avalanche Size Distribution (linear)")
+
+    # Log-log scale
+    ax2 = axes[1]
+    ax2.hist(topple_counts, bins=bins if isinstance(bins, int) else 100,
+             color="coral", edgecolor="white", alpha=0.85)
+    if log_scale:
+        ax2.set_xscale("log")
+        ax2.set_yscale("log")
+    ax2.set_xlabel("Avalanche size (total topples)")
+    ax2.set_ylabel("Frequency")
+    ax2.set_title("Avalanche Size Distribution (log-log)")
+
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_toppling_frequency_map(grids_dir: str, num_trials: int,
+                                save_path: str | None = None,
+                                max_to_load: int = 500,
+                                background: int = 3):
+    """Heatmap showing how often each site toppled across trials.
+
+    Loads a sample of saved grid files (up to max_to_load) and infers
+    toppling frequency from grain counts (non-background values indicate
+    the site was involved in an avalanche).
+
+    Parameters
+    ----------
+    grids_dir : str
+        Directory with trial_NNNNNN.npy files.
+    num_trials : int
+        Total number of trials.
+    save_path : str | None
+    max_to_load : int
+        Maximum number of grid files to load (for performance).
+    background : int
+        Background grain count (3 for 2D, 5 for 3D).
+    """
+    freq = None
+    count = 0
+
+    for i in range(min(num_trials, max_to_load)):
+        path = os.path.join(grids_dir, f"trial_{i:06d}.npy")
+        if not os.path.exists(path):
+            continue
+        grid = np.load(path)
+        if freq is None:
+            freq = np.zeros_like(grid, dtype=np.float64)
+        # A site was touched by the avalanche if its grain count != background
+        freq += (grid != background).astype(np.float64)
+        count += 1
+
+    if freq is None:
+        print("No grid files found for toppling frequency map.")
+        return
+
+    if count == 0:
+        print("No grid files found for toppling frequency map.")
+        return
+
+    freq /= count  # normalise to [0, 1]
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+    im = ax.imshow(freq, cmap="hot", vmin=0, vmax=1,
+                   interpolation="nearest", origin="upper")
+    ax.set_title(f"Toppling Frequency Map ({count} trials)")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    cbar = plt.colorbar(im, ax=ax, shrink=0.82)
+    cbar.set_label("Fraction of trials where site toppled")
+
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+# ---------------------------------------------------------------------------
+# 3D visualisation (slice-based)
+# ---------------------------------------------------------------------------
+
+def plot_3d_slices(grid_3d: np.ndarray, z_slices: list[int] | None = None,
+                   title: str = "", save_path: str | None = None,
+                   ncols: int = 4, figsize_per: int = 3):
+    """Plot 2D slices through a 3D sandpile grid at various z-depths.
+
+    Parameters
+    ----------
+    grid_3d : np.ndarray, shape (n, n, n)
+    z_slices : list[int] | None
+        Which z-indices to show. If None, picks 9 equally spaced.
+    title : str
+    save_path : str | None
+    ncols : int
+    figsize_per : int
+    """
+    n = grid_3d.shape[0]
+    if z_slices is None:
+        z_slices = np.linspace(0, n - 1, min(9, n), dtype=int).tolist()
+
+    nrows = (len(z_slices) + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols,
+                             figsize=(ncols * figsize_per, nrows * figsize_per))
+    axes = np.atleast_1d(axes).flatten()
+
+    vmax = max(int(grid_3d.max()), 4)
+
+    for i, z in enumerate(z_slices):
+        ax = axes[i]
+        ax.imshow(grid_3d[:, :, z], cmap=SAND_CMAP_FULL, vmin=0, vmax=vmax,
+                  interpolation="nearest", origin="upper")
+        ax.set_title(f"z = {z}", fontsize=9)
+        ax.axis("off")
+
+    for j in range(len(z_slices), len(axes)):
+        axes[j].set_visible(False)
+
+    fig.suptitle(title or "3D Sandpile — z-slices", fontsize=14)
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_3d_slice_montage(grids_3d: list[np.ndarray],
+                          labels: list[str],
+                          z: int | None = None,
+                          save_path: str | None = None,
+                          ncols: int = 3, figsize_per: int = 4):
+    """Compare the same z-slice across multiple 3D grids.
+
+    Parameters
+    ----------
+    grids_3d : list[np.ndarray]
+    labels : list[str]
+    z : int | None
+        z-index to show. If None, uses middle slice.
+    save_path : str | None
+    ncols : int
+    figsize_per : int
+    """
+    n = len(grids_3d)
+    nrows = (n + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols,
+                             figsize=(ncols * figsize_per, nrows * figsize_per))
+    axes = np.atleast_1d(axes).flatten()
+
+    if z is None:
+        z = grids_3d[0].shape[0] // 2
+
+    vmax = max(int(g.max()) for g in grids_3d)
+    vmax = max(vmax, 6)
+
+    for i, (g, lbl) in enumerate(zip(grids_3d, labels)):
+        ax = axes[i]
+        ax.imshow(g[:, :, z], cmap=SAND_CMAP_FULL, vmin=0, vmax=vmax,
+                  interpolation="nearest", origin="upper")
+        ax.set_title(lbl, fontsize=10)
+        ax.axis("off")
+
+    for j in range(n, len(axes)):
+        axes[j].set_visible(False)
+
+    fig.suptitle(f"3D z={z} slice comparison", fontsize=14)
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_3d_toppling_frequency_map(grids_dir: str, num_trials: int,
+                                   z_slice: int | None = None,
+                                   save_path: str | None = None,
+                                   max_to_load: int = 200,
+                                   background: int = 5):
+    """Toppling frequency heatmap for a representative z-slice of 3D grids.
+
+    Parameters
+    ----------
+    grids_dir : str
+        Directory with trial_NNNNNN.npy files.
+    num_trials : int
+        Total number of trials.
+    z_slice : int | None
+        z-index to show. If None, uses the middle slice.
+    save_path : str | None
+    max_to_load : int
+        Maximum number of grid files to load.
+    background : int
+        Background grain count (5 for 3D).
+    """
+    freq = None
+    count = 0
+    n = None
+
+    for i in range(min(num_trials, max_to_load)):
+        path = os.path.join(grids_dir, f"trial_{i:06d}.npy")
+        if not os.path.exists(path):
+            continue
+        grid = np.load(path)
+        if n is None:
+            n = grid.shape[0]
+        if z_slice is None:
+            z_slice = n // 2 if n else 0
+        if freq is None:
+            freq = np.zeros((n, n), dtype=np.float64)
+
+        sl = grid[:, :, z_slice]
+        freq += (sl != background).astype(np.float64)
+        count += 1
+
+    if freq is None or count == 0:
+        print("No grid files found for 3D toppling frequency map.")
+        return
+
+    freq /= count
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+    im = ax.imshow(freq, cmap="hot", vmin=0, vmax=1,
+                   interpolation="nearest", origin="upper")
+    ax.set_title(f"3D Toppling Frequency — z={z_slice} ({count} trials)")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    cbar = plt.colorbar(im, ax=ax, shrink=0.82)
+    cbar.set_label("Fraction of trials where site toppled")
+
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_slice_changed_fraction_profile(
+    avg_slice_fracs: list[float],
+    save_path: str | None = None,
+    title: str = "Changed Fraction vs z-slice",
+    figsize: tuple = (8, 5),
+):
+    """Plot average changed fraction per z-slice across trials.
+
+    Parameters
+    ----------
+    avg_slice_fracs : list[float]
+        Average changed fraction for each z-slice.
+    save_path : str | None
+    title : str
+    figsize : tuple
+    """
+    n_slices = len(avg_slice_fracs)
+    z_vals = list(range(n_slices))
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(z_vals, avg_slice_fracs, "o-", color="steelblue",
+            markersize=4, linewidth=1.5)
+    ax.fill_between(z_vals, avg_slice_fracs, alpha=0.2, color="steelblue")
+    ax.set_xlabel("z-slice index")
+    ax.set_ylabel("Average changed fraction")
+    ax.set_title(title)
+    ax.grid(True, alpha=0.3)
+
+    # Add horizontal line for overall mean
+    overall_mean = sum(avg_slice_fracs) / n_slices
+    ax.axhline(y=overall_mean, color="coral", linestyle="--", linewidth=1,
+               label=f"Overall mean = {overall_mean:.4f}")
+    ax.legend(fontsize=9)
+
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_3d_toppling_frequency_slices(
+    grids_dir: str, num_trials: int,
+    z_slices: list[int] | None = None,
+    save_path: str | None = None,
+    max_to_load: int = 100,
+    background: int = 5,
+    ncols: int = 4,
+):
+    """Toppling frequency heatmaps at multiple z-depths.
+
+    Parameters
+    ----------
+    grids_dir : str
+    num_trials : int
+    z_slices : list[int] | None
+        z-indices to show. If None, picks 6 equally spaced slices.
+    save_path : str | None
+    max_to_load : int
+    background : int
+    ncols : int
+    """
+    # First pass: find grid size
+    for i in range(min(num_trials, max_to_load)):
+        path = os.path.join(grids_dir, f"trial_{i:06d}.npy")
+        if os.path.exists(path):
+            sample = np.load(path)
+            n = sample.shape[0]
+            break
+    else:
+        print("No grid files found.")
+        return
+
+    if z_slices is None:
+        z_slices = np.linspace(0, n - 1, min(6, n), dtype=int).tolist()
+
+    # Accumulate frequencies for each slice
+    freqs = {z: np.zeros((n, n), dtype=np.float64) for z in z_slices}
+    count = 0
+
+    for i in range(min(num_trials, max_to_load)):
+        path = os.path.join(grids_dir, f"trial_{i:06d}.npy")
+        if not os.path.exists(path):
+            continue
+        grid = np.load(path)
+        for z in z_slices:
+            sl = grid[:, :, z]
+            freqs[z] += (sl != background).astype(np.float64)
+        count += 1
+
+    if count == 0:
+        print("No grid files found.")
+        return
+
+    for z in z_slices:
+        freqs[z] /= count
+
+    # Plot
+    n_slices = len(z_slices)
+    nrows = (n_slices + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols,
+                             figsize=(ncols * 4, nrows * 4))
+    axes = np.atleast_1d(axes).flatten()
+
+    for i, z in enumerate(z_slices):
+        ax = axes[i]
+        im = ax.imshow(freqs[z], cmap="hot", vmin=0, vmax=1,
+                       interpolation="nearest", origin="upper")
+        ax.set_title(f"z = {z}", fontsize=10)
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        plt.colorbar(im, ax=ax, shrink=0.75)
+
+    for j in range(n_slices, len(axes)):
+        axes[j].set_visible(False)
+
+    fig.suptitle(f"3D Toppling Frequency by z-slice ({count} trials)",
+                 fontsize=14)
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+# ---------------------------------------------------------------------------
+# Interactive viewers (2D and 3D)
+# ---------------------------------------------------------------------------
+
+def interactive_2d_viewer(grids_dir: str, stats_dir: str | None = None,
+                          initial_trial: int = 0):
+    """Interactive 2D sandpile grid explorer.
+
+    Opens a matplotlib window with a trial slider to browse grid snapshots.
+    Perturbation sites are marked with red '+' crosses and a legend.
+
+    Parameters
+    ----------
+    grids_dir : str
+        Directory containing trial_NNNNNN.npy files.
+    stats_dir : str | None
+        Directory with all_metadata.json for displaying trial info.
+    initial_trial : int
+        Starting trial index.
+    """
+    import json
+    from matplotlib.widgets import Slider
+
+    # --- Discover available trials ---
+    trial_indices = []
+    for fname in sorted(os.listdir(grids_dir)):
+        if fname.startswith("trial_") and fname.endswith(".npy"):
+            try:
+                idx = int(fname.replace("trial_", "").replace(".npy", ""))
+                trial_indices.append(idx)
+            except ValueError:
+                pass
+    trial_indices.sort()
+
+    if not trial_indices:
+        print(f"No trial grid files found in {grids_dir}")
+        return
+
+    # --- Load metadata if available ---
+    metadata_map = {}
+    if stats_dir is not None:
+        meta_path = os.path.join(stats_dir, "all_metadata.json")
+        if os.path.exists(meta_path):
+            with open(meta_path) as f:
+                metadata_list = json.load(f)
+            metadata_map = {i: m for i, m in enumerate(metadata_list)}
+
+    # --- Load first grid to determine vmax ---
+    path0 = os.path.join(grids_dir, f"trial_{trial_indices[0]:06d}.npy")
+    sample_grid = np.load(path0)
+    vmax_global = max(int(sample_grid.max()), 4)
+
+    # Clamp initial value
+    trial_idx_pos = trial_indices.index(initial_trial) if initial_trial in trial_indices else 0
+    current_trial_idx_pos = trial_idx_pos
+
+    # --- Build the figure ---
+    fig, ax_img = plt.subplots(figsize=(8, 9))
+    plt.subplots_adjust(bottom=0.15, left=0.12, right=0.95)
+
+    # Initial display
+    trial_idx = trial_indices[current_trial_idx_pos]
+    path = os.path.join(grids_dir, f"trial_{trial_idx:06d}.npy")
+    grid = np.load(path)
+    vmax_global = max(int(grid.max()), 4)
+
+    im = ax_img.imshow(grid, cmap=SAND_CMAP_FULL,
+                       vmin=0, vmax=vmax_global,
+                       interpolation="nearest", origin="upper")
+
+    # --- Perturbation site markers ---
+    meta = metadata_map.get(trial_idx, {})
+    perturb_sites = meta.get("perturb_sites", [])
+    perturb_xs = [p[0] for p in perturb_sites]
+    perturb_ys = [p[1] for p in perturb_sites]
+    (perturb_markers,) = ax_img.plot(
+        perturb_xs, perturb_ys, "P",
+        color="red", markersize=14, markeredgewidth=1.5,
+        markeredgecolor="darkred", label="Perturb sites"
+    )
+
+    topples = meta.get("topples", "?")
+    distinct = meta.get("distinct", "?")
+    title_text = (f"2D Sandpile — Trial {trial_idx}  "
+                  f"(topples={topples:,}, distinct={distinct:,})")
+    ax_title = ax_img.set_title(title_text, fontsize=13)
+    ax_img.set_xlabel("x")
+    ax_img.set_ylabel("y")
+    ax_img.legend(loc="upper center", bbox_to_anchor=(0.5, -0.06),
+                  fontsize=9, framealpha=0.85, facecolor="white", ncol=1)
+
+    cbar = plt.colorbar(im, ax=ax_img, shrink=0.82,
+                        ticks=range(0, vmax_global + 1))
+    cbar.set_label("Grains")
+
+    # --- Trial slider ---
+    ax_slider_trial = plt.axes([0.15, 0.06, 0.75, 0.03])
+    slider_trial = Slider(
+        ax=ax_slider_trial,
+        label="Trial",
+        valmin=0,
+        valmax=len(trial_indices) - 1,
+        valinit=current_trial_idx_pos,
+        valfmt="%d",
+        valstep=1,
+    )
+
+    # --- Cached grid ---
+    cache = {"idx": trial_idx, "grid": grid}
+
+    def update(_=None):
+        nonlocal current_trial_idx_pos, vmax_global, cache
+
+        new_trial_pos = int(round(slider_trial.val))
+        if new_trial_pos == current_trial_idx_pos:
+            return
+
+        current_trial_idx_pos = new_trial_pos
+        trial_idx = trial_indices[current_trial_idx_pos]
+
+        if cache["idx"] == trial_idx:
+            grid = cache["grid"]
+        else:
+            path = os.path.join(grids_dir, f"trial_{trial_idx:06d}.npy")
+            grid = np.load(path)
+            cache = {"idx": trial_idx, "grid": grid}
+            vmax_global = max(int(grid.max()), 4)
+            im.set_clim(vmin=0, vmax=vmax_global)
+            cbar.set_ticks(range(0, vmax_global + 1))
+            cbar.update_normal(im)
+
+        im.set_data(grid)
+
+        # Update perturbation site markers
+        meta = metadata_map.get(trial_idx, {})
+        perturb_sites = meta.get("perturb_sites", [])
+        if perturb_sites:
+            perturb_markers.set_data(
+                [p[0] for p in perturb_sites],
+                [p[1] for p in perturb_sites],
+            )
+            perturb_markers.set_visible(True)
+        else:
+            perturb_markers.set_visible(False)
+
+        topples = meta.get("topples", "?")
+        distinct = meta.get("distinct", "?")
+        ax_title.set_text(
+            f"2D Sandpile — Trial {trial_idx}  "
+            f"(topples={topples:,}, distinct={distinct:,})"
+        )
+
+        fig.canvas.draw_idle()
+
+    slider_trial.on_changed(update)
+
+    # --- Keyboard shortcuts ---
+    def on_key(event):
+        if event.key == "right" or event.key == "d":
+            slider_trial.set_val(
+                min(current_trial_idx_pos + 1, len(trial_indices) - 1))
+        elif event.key == "left" or event.key == "a":
+            slider_trial.set_val(max(current_trial_idx_pos - 1, 0))
+
+    fig.canvas.mpl_connect("key_press_event", on_key)
+
+    plt.show()
+
+
+def interactive_3d_viewer(grids_dir: str, stats_dir: str | None = None,
+                          initial_trial: int = 0, initial_z: int | None = None):
+    """Interactive 3D sandpile slice explorer.
+
+    Opens a matplotlib window with two sliders:
+      - Trial index: select which trial's grid to display
+      - Z-slice: scroll through z-depths of the 3D grid
+
+    The display updates in real time as sliders are moved.
+
+    Parameters
+    ----------
+    grids_dir : str
+        Directory containing trial_NNNNNN.npy files.
+    stats_dir : str | None
+        Directory with all_metadata.json for displaying trial info.
+    initial_trial : int
+        Starting trial index.
+    initial_z : int | None
+        Starting z-slice. If None, uses the middle slice.
+    """
+    import json
+    from matplotlib.widgets import Slider
+
+    # --- Discover available trials ---
+    trial_indices = []
+    for fname in sorted(os.listdir(grids_dir)):
+        if fname.startswith("trial_") and fname.endswith(".npy"):
+            try:
+                idx = int(fname.replace("trial_", "").replace(".npy", ""))
+                trial_indices.append(idx)
+            except ValueError:
+                pass
+    trial_indices.sort()
+
+    if not trial_indices:
+        print(f"No trial grid files found in {grids_dir}")
+        return
+
+    # --- Load metadata if available ---
+    metadata_map = {}
+    if stats_dir is not None:
+        meta_path = os.path.join(stats_dir, "all_metadata.json")
+        if os.path.exists(meta_path):
+            with open(meta_path) as f:
+                metadata_list = json.load(f)
+            metadata_map = {i: m for i, m in enumerate(metadata_list)}
+
+    # --- Load first grid to determine dimensions ---
+    path0 = os.path.join(grids_dir, f"trial_{trial_indices[0]:06d}.npy")
+    sample_grid = np.load(path0)
+    n = sample_grid.shape[0]
+    vmax_global = max(int(sample_grid.max()), 6)
+
+    if initial_z is None:
+        initial_z = n // 2
+
+    # Clamp initial values
+    trial_idx_pos = trial_indices.index(initial_trial) if initial_trial in trial_indices else 0
+    current_trial_idx_pos = trial_idx_pos
+    current_z = max(0, min(initial_z, n - 1))
+
+    # --- Build the figure ---
+    fig, ax_img = plt.subplots(figsize=(8, 9))
+    plt.subplots_adjust(bottom=0.22, left=0.12, right=0.95)
+
+    # Initial display
+    trial_idx = trial_indices[current_trial_idx_pos]
+    path = os.path.join(grids_dir, f"trial_{trial_idx:06d}.npy")
+    grid = np.load(path)
+    vmax_global = max(int(grid.max()), 6)
+
+    im = ax_img.imshow(grid[:, :, current_z], cmap=SAND_CMAP_FULL,
+                       vmin=0, vmax=vmax_global,
+                       interpolation="nearest", origin="upper")
+
+    meta = metadata_map.get(trial_idx, {})
+    topples = meta.get("topples", "?")
+    title_text = (f"3D Sandpile — Trial {trial_idx}  "
+                  f"(z={current_z}/{n - 1}, topples={topples:,})")
+    ax_title = ax_img.set_title(title_text, fontsize=13)
+    ax_img.set_xlabel("x")
+    ax_img.set_ylabel("y")
+
+    cbar = plt.colorbar(im, ax=ax_img, shrink=0.82,
+                        ticks=range(0, vmax_global + 1))
+    cbar.set_label("Grains")
+
+    # --- Slider axes ---
+    ax_slider_trial = plt.axes([0.15, 0.10, 0.75, 0.03])
+    ax_slider_z = plt.axes([0.15, 0.05, 0.75, 0.03])
+
+    slider_trial = Slider(
+        ax=ax_slider_trial,
+        label="Trial",
+        valmin=0,
+        valmax=len(trial_indices) - 1,
+        valinit=current_trial_idx_pos,
+        valfmt="%d",
+        valstep=1,
+    )
+
+    slider_z = Slider(
+        ax=ax_slider_z,
+        label="z-slice",
+        valmin=0,
+        valmax=n - 1,
+        valinit=current_z,
+        valfmt="%d",
+        valstep=1,
+    )
+
+    # --- Cached grid to avoid reloading same trial ---
+    cache = {"idx": trial_idx, "grid": grid}
+
+    def update(_=None):
+        nonlocal current_trial_idx_pos, current_z, vmax_global, cache
+
+        new_trial_pos = int(round(slider_trial.val))
+        new_z = int(round(slider_z.val))
+
+        trial_changed = (new_trial_pos != current_trial_idx_pos)
+        z_changed = (new_z != current_z)
+
+        if not trial_changed and not z_changed:
+            return
+
+        current_trial_idx_pos = new_trial_pos
+        current_z = new_z
+
+        trial_idx = trial_indices[current_trial_idx_pos]
+
+        # Load grid (use cache if same trial)
+        if cache["idx"] == trial_idx:
+            grid = cache["grid"]
+        else:
+            path = os.path.join(grids_dir, f"trial_{trial_idx:06d}.npy")
+            grid = np.load(path)
+            cache = {"idx": trial_idx, "grid": grid}
+            vmax_global = max(int(grid.max()), 6)
+            im.set_clim(vmin=0, vmax=vmax_global)
+            cbar.set_ticks(range(0, vmax_global + 1))
+            cbar.update_normal(im)
+
+        im.set_data(grid[:, :, current_z])
+
+        meta = metadata_map.get(trial_idx, {})
+        topples = meta.get("topples", "?")
+        ax_title.set_text(
+            f"3D Sandpile — Trial {trial_idx}  "
+            f"(z={current_z}/{n - 1}, topples={topples:,})"
+        )
+
+        fig.canvas.draw_idle()
+
+    slider_trial.on_changed(update)
+    slider_z.on_changed(update)
+
+    # --- Keyboard shortcuts ---
+    def on_key(event):
+        if event.key == "right" or event.key == "d":
+            slider_z.set_val(min(current_z + 1, n - 1))
+        elif event.key == "left" or event.key == "a":
+            slider_z.set_val(max(current_z - 1, 0))
+        elif event.key == "up" or event.key == "w":
+            slider_trial.set_val(
+                min(current_trial_idx_pos + 1, len(trial_indices) - 1))
+        elif event.key == "down" or event.key == "s":
+            slider_trial.set_val(max(current_trial_idx_pos - 1, 0))
+
+    fig.canvas.mpl_connect("key_press_event", on_key)
+
+    plt.show()
+
+
+# ---------------------------------------------------------------------------
+# Power-law distribution visualisation
+# ---------------------------------------------------------------------------
+
+def plot_power_law_distribution(
+    sizes: list[int],
+    tau: float | None = None,
+    save_path: str | None = None,
+    bins_per_decade: float = 2.0,
+    title: str = "Avalanche Size Distribution",
+    figsize: tuple = (14, 5),
+):
+    """Plot the avalanche-size distribution with power-law diagnostics.
+
+    Creates a 3-panel figure:
+      Left   — Log-binned histogram (probability density) with power-law fit
+      Center — Complementary CDF P(S > s)
+      Right  — Time series of avalanche sizes
+
+    Parameters
+    ----------
+    sizes : list[int]
+        Avalanche sizes from continuous driving.
+    tau : float | None
+        If given, overlays a reference power-law line s^(-tau).
+    save_path : str | None
+    bins_per_decade : float
+    title : str
+    figsize : tuple
+    """
+    import numpy as np
+    from continuous_drive import log_binned_histogram, complementary_cdf
+
+    sizes_arr = np.array([s for s in sizes if s > 0], dtype=np.float64)
+    if len(sizes_arr) == 0:
+        print("No positive avalanche sizes to plot.")
+        return
+
+    fig, axes = plt.subplots(1, 3, figsize=figsize)
+
+    # ---- Panel 1: Log-binned histogram ----
+    ax1 = axes[0]
+    centers, density, edges = log_binned_histogram(sizes, bins_per_decade)
+    ax1.loglog(centers, density, "o", markersize=4, color="steelblue",
+               alpha=0.7, label="Data")
+
+    if tau is not None and len(centers) > 0:
+        # Normalise reference line to pass through the first data point
+        c0 = density[0] / (centers[0] ** (-tau))
+        x_ref = np.logspace(np.log10(centers[0]), np.log10(centers[-1]), 200)
+        ax1.loglog(x_ref, c0 * x_ref ** (-tau), "r--", linewidth=1.5,
+                   label=f"$s^{{-{tau:.2f}}}$")
+
+    ax1.set_xlabel("Avalanche size $s$")
+    ax1.set_ylabel("Probability density $P(s)$")
+    ax1.set_title("Log-binned PDF")
+    ax1.legend(fontsize=9)
+    ax1.grid(True, alpha=0.3, which="both")
+
+    # ---- Panel 2: Complementary CDF ----
+    ax2 = axes[1]
+    s_vals, ccdf = complementary_cdf(sizes)
+    if len(s_vals) > 0:
+        ax2.loglog(s_vals, ccdf, "o", markersize=3, color="coral",
+                   alpha=0.7)
+        if tau is not None and tau > 1:
+            c0_ccdf = ccdf[0] / (s_vals[0] ** (-tau + 1))
+            x_ref = np.logspace(np.log10(s_vals[0]), np.log10(s_vals[-1]), 200)
+            ax2.loglog(x_ref, c0_ccdf * x_ref ** (-tau + 1), "r--",
+                       linewidth=1.5, label=f"$s^{{-{tau - 1:.2f}}}$")
+    ax2.set_xlabel("Avalanche size $s$")
+    ax2.set_ylabel("$P(S > s)$")
+    ax2.set_title("Complementary CDF")
+    ax2.legend(fontsize=9)
+    ax2.grid(True, alpha=0.3, which="both")
+
+    # ---- Panel 3: Time series (first 2000 points) ----
+    ax3 = axes[2]
+    n_show = min(2000, len(sizes_arr))
+    ax3.plot(range(n_show), sizes_arr[:n_show], linewidth=0.3,
+             color="darkgreen")
+    ax3.set_xlabel("Addition index")
+    ax3.set_ylabel("Avalanche size")
+    ax3.set_title("Avalanche Size Time Series")
+    ax3.set_yscale("log")
+    ax3.grid(True, alpha=0.3)
+
+    fig.suptitle(title, fontsize=14, fontweight="bold")
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=200, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_power_law_comparison(
+    sizes_2d: list[int],
+    sizes_3d: list[int] | None = None,
+    tau_2d: float | None = None,
+    tau_3d: float | None = None,
+    save_path: str | None = None,
+):
+    """Compare avalanche-size distributions between 2D and 3D.
+
+    Parameters
+    ----------
+    sizes_2d : list[int]
+    sizes_3d : list[int] | None
+    tau_2d, tau_3d : float | None
+    save_path : str | None
+    """
+    import numpy as np
+    from continuous_drive import log_binned_histogram
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 7))
+
+    # 2D data
+    centers_2d, dens_2d, _ = log_binned_histogram(sizes_2d)
+    ax.loglog(centers_2d, dens_2d, "o", markersize=4, color="steelblue",
+              alpha=0.7, label="2D")
+
+    if tau_2d is not None and len(centers_2d) > 0:
+        c0 = dens_2d[0] / (centers_2d[0] ** (-tau_2d))
+        x_ref = np.logspace(np.log10(centers_2d[0]),
+                            np.log10(centers_2d[-1]), 200)
+        ax.loglog(x_ref, c0 * x_ref ** (-tau_2d), "--", color="steelblue",
+                  linewidth=1.5, label=f"2D: $s^{{-{tau_2d:.2f}}}$")
+
+    # 3D data
+    if sizes_3d is not None and len(sizes_3d) > 0:
+        centers_3d, dens_3d, _ = log_binned_histogram(sizes_3d)
+        ax.loglog(centers_3d, dens_3d, "s", markersize=4, color="coral",
+                  alpha=0.7, label="3D")
+
+        if tau_3d is not None and len(centers_3d) > 0:
+            c0 = dens_3d[0] / (centers_3d[0] ** (-tau_3d))
+            x_ref = np.logspace(np.log10(centers_3d[0]),
+                                np.log10(centers_3d[-1]), 200)
+            ax.loglog(x_ref, c0 * x_ref ** (-tau_3d), "--", color="coral",
+                      linewidth=1.5, label=f"3D: $s^{{-{tau_3d:.2f}}}$")
+
+    ax.set_xlabel("Avalanche size $s$", fontsize=13)
+    ax.set_ylabel("Probability density $P(s)$", fontsize=13)
+    ax.set_title("2D vs 3D Avalanche-Size Distributions", fontsize=14)
+    ax.legend(fontsize=11)
+    ax.grid(True, alpha=0.3, which="both")
+
+    fig.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=200, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
