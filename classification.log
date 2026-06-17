@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.12)  17 JUN 2026 17:48
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.10.12)  17 JUN 2026 17:52
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -854,7 +854,10 @@ File: images/1_1.png Graphic file (type png)
 <use images/1_1.png>
 Package pdftex.def Info: images/1_1.png  used on input line 41.
 (pdftex.def)             Requested size: 31.2982pt x 32.90848pt.
-
+LaTeX Font Info:    Trying to load font information for OT1+lmtt on input line 50.
+(c:/texlive/2025/texmf-dist/tex/latex/lm/ot1lmtt.fd
+File: ot1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
+)
 
 [1{c:/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{c:/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}
 
@@ -864,7 +867,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{table.1.1}) ha
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
 l.56 \subsection
-                {Internal Color Periodicity} <./images/0_1.png> <./images/1_0.png> <./images/1_1.png> <./images/1_2.png> <./images/1_3.png> <./images/2_1.png> <./images/3_1.png>]
+                {Internal Color Periodicity}{c:/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-rmtt.enc} <./images/0_1.png> <./images/1_0.png> <./images/1_1.png> <./images/1_2.png> <./images/1_3.png> <./images/2_1.png> <./images/3_1.png>]
 
 [2] (./classification.aux)
  ***********
@@ -875,18 +878,18 @@ Package rerunfilecheck Info: File `classification.out' has not changed.
 (rerunfilecheck)             Checksum: 97A18B9047987E70176ED9EB0735B302;1165.
  ) 
 Here is how much of TeX's memory you used:
- 26170 strings out of 473190
- 492728 string characters out of 5719978
+ 26214 strings out of 473190
+ 493443 string characters out of 5719978
  977383 words of memory out of 5000000
- 48978 multiletter control sequences out of 15000+600000
- 600828 words of font info for 73 fonts, out of 8000000 for 9000
+ 49017 multiletter control sequences out of 15000+600000
+ 601139 words of font info for 74 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  104i,18n,110p,554b,1058s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmmi12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmmi9.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmr9.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmsy7.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmsy9.pfb>
-Output written on classification.pdf (2 pages, 431048 bytes).
+<c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmmi12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmmi9.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmr9.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmsy7.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmsy9.pfb><c:/texlive/2025/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
+Output written on classification.pdf (2 pages, 452847 bytes).
 PDF statistics:
- 141 PDF objects out of 1000 (max. 8388607)
- 86 compressed objects within 1 object stream
+ 147 PDF objects out of 1000 (max. 8388607)
+ 90 compressed objects within 1 object stream
  10 named destinations out of 1000 (max. 500000)
  192 words of extra memory for PDF output out of 10000 (max. 10000000)
 
