@@ -2,32 +2,18 @@
 """
 Sandpile Statistical Experiments — Command-Line Entry Point.
 
-Two experiment paradigms:
-  A) Perturbation mode: reset grid each trial, perturb 3 sites, stabilise.
-  B) Continuous-drive (SOC) mode: never reset, add grains continuously,
-     record avalanche sizes to study power-law distributions.
+Perturbation mode: reset grid each trial, perturb 3 sites, stabilise.
 
 Usage:
-    # Perturbation experiments
     python main.py --mode 2d [--N 200] [--trials 1000] [--seed 42]
     python main.py --mode 3d [--n 30]  [--trials 1000] [--seed 42]
     python main.py --all
     python main.py --analyze 2d
     python main.py --analyze 3d
 
-    # Interactive 3D viewer
-    python main.py --view3d
-    python main.py --view3d --trial 42
-
     # Interactive 2D viewer
     python main.py --view2d
     python main.py --view2d --trial 100
-
-    # Continuous-drive SOC experiments (power-law analysis)
-    python main.py --continuous 2d --N 100 --additions 100000
-    python main.py --continuous 3d --n 20  --additions 50000
-    python main.py --analyze-continuous 2d
-    python main.py --analyze-continuous 3d
 
     # Interactive 3D viewer
     python main.py --view3d
@@ -260,146 +246,6 @@ def analyze_3d(args):
 
 
 # ---------------------------------------------------------------------------
-# Continuous-drive experiments
-# ---------------------------------------------------------------------------
-
-def run_continuous_2d(args):
-    """Run 2D continuous-drive SOC experiment."""
-    from continuous_drive import run_continuous_2d_batch
-    ensure_dirs()
-    N = args.N or config.N_2D
-    additions = args.additions or 100_000
-    skip = args.skip_transient or 10_000
-    initial = args.initial_grains if args.initial_grains is not None else 0
-    seed = args.seed or config.BASE_SEED
-
-    print(f"=== 2D Continuous-Drive SOC Experiment ===")
-    print(f"Grid: {N}x{N}, Additions: {additions:,}, Skip transient: {skip:,}")
-    print(f"Initial grains: {initial}, Threshold: {config.TOPPLE_THRESHOLD_2D}")
-    print()
-
-    run_continuous_2d_batch(
-        N=N,
-        num_additions=additions,
-        skip_transient=skip,
-        initial_grains=initial,
-        threshold=config.TOPPLE_THRESHOLD_2D,
-        seed=seed,
-    )
-
-    print(f"\n2D continuous drive complete. Results in {config.OUTPUT_2D_DIR}")
-
-
-def run_continuous_3d(args):
-    """Run 3D continuous-drive SOC experiment."""
-    from continuous_drive import run_continuous_3d_batch
-    ensure_dirs()
-    n = args.n or config.N_3D
-    additions = args.additions or 50_000
-    skip = args.skip_transient or 5_000
-    initial = args.initial_grains if args.initial_grains is not None else 0
-    seed = args.seed or config.BASE_SEED
-
-    print(f"=== 3D Continuous-Drive SOC Experiment ===")
-    print(f"Cube: {n}x{n}x{n}, Additions: {additions:,}, Skip transient: {skip:,}")
-    print(f"Initial grains: {initial}, Threshold: {config.TOPPLE_THRESHOLD_3D}")
-    print()
-
-    run_continuous_3d_batch(
-        n=n,
-        num_additions=additions,
-        skip_transient=skip,
-        initial_grains=initial,
-        threshold=config.TOPPLE_THRESHOLD_3D,
-        seed=seed,
-    )
-
-    print(f"\n3D continuous drive complete. Results in {config.OUTPUT_3D_DIR}")
-
-
-def analyze_continuous_2d(args):
-    """Analyze 2D continuous-drive results — power-law plots."""
-    import numpy as np
-    from continuous_drive import estimate_tau_mle
-    from visualize import plot_power_law_distribution, plot_grid
-
-    sizes_path = os.path.join(config.STATS_2D_DIR, "continuous_sizes.npy")
-    if not os.path.exists(sizes_path):
-        print(f"Error: no continuous-drive data found at {sizes_path}")
-        print("Run --continuous 2d first.")
-        return
-
-    sizes = np.load(sizes_path).tolist()
-    tau_info = estimate_tau_mle(sizes, s_min=1)
-    print(f"MLE power-law fit (s_min=1): τ = {tau_info['tau']:.3f} "
-          f"± {tau_info['stderr']:.3f}  (n={tau_info['n_samples']})")
-
-    # Also try with higher s_min to see if fit improves
-    for s_min_try in [2, 3, 5, 10]:
-        ti = estimate_tau_mle(sizes, s_min=s_min_try)
-        if ti["tau"] is not None:
-            print(f"  s_min={s_min_try:3d}: τ = {ti['tau']:.3f} ± {ti['stderr']:.3f}")
-
-    plot_power_law_distribution(
-        sizes,
-        tau=tau_info["tau"],
-        save_path=os.path.join(config.IMAGES_2D_DIR, "power_law_distribution.png"),
-        title=f"2D Avalanche Size Distribution (N={config.N_2D})",
-    )
-
-    # Also plot the final grid from continuous driving
-    grid_path = os.path.join(config.GRIDS_2D_DIR, "continuous_final.npy")
-    if os.path.exists(grid_path):
-        plot_grid(
-            np.load(grid_path),
-            title="Final Grid — 2D Continuous Drive",
-            save_path=os.path.join(config.IMAGES_2D_DIR, "continuous_final_grid.png"),
-        )
-
-    print(f"\n2D continuous analysis complete. Plots in {config.IMAGES_2D_DIR}")
-
-
-def analyze_continuous_3d(args):
-    """Analyze 3D continuous-drive results — power-law plots."""
-    import numpy as np
-    from continuous_drive import estimate_tau_mle
-    from visualize import plot_power_law_distribution, plot_3d_slices
-
-    sizes_path = os.path.join(config.STATS_3D_DIR, "continuous_sizes.npy")
-    if not os.path.exists(sizes_path):
-        print(f"Error: no continuous-drive data found at {sizes_path}")
-        print("Run --continuous 3d first.")
-        return
-
-    sizes = np.load(sizes_path).tolist()
-    tau_info = estimate_tau_mle(sizes, s_min=1)
-    print(f"MLE power-law fit (s_min=1): τ = {tau_info['tau']:.3f} "
-          f"± {tau_info['stderr']:.3f}  (n={tau_info['n_samples']})")
-
-    for s_min_try in [2, 3, 5, 10]:
-        ti = estimate_tau_mle(sizes, s_min=s_min_try)
-        if ti["tau"] is not None:
-            print(f"  s_min={s_min_try:3d}: τ = {ti['tau']:.3f} ± {ti['stderr']:.3f}")
-
-    plot_power_law_distribution(
-        sizes,
-        tau=tau_info["tau"],
-        save_path=os.path.join(config.IMAGES_3D_DIR, "power_law_distribution.png"),
-        title=f"3D Avalanche Size Distribution (n={config.N_3D})",
-    )
-
-    grid_path = os.path.join(config.GRIDS_3D_DIR, "continuous_final.npy")
-    if os.path.exists(grid_path):
-        plot_3d_slices(
-            np.load(grid_path),
-            title="Final Grid — 3D Continuous Drive",
-            save_path=os.path.join(config.IMAGES_3D_DIR, "continuous_final_slices.png"),
-        )
-
-    print(f"\n3D continuous analysis complete. Plots in {config.IMAGES_3D_DIR}")
-
-
-# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -454,9 +300,6 @@ Examples:
   python main.py --mode 2d --N 200 --trials 1000
   python main.py --mode 3d --n 30 --trials 500
   python main.py --analyze 2d
-  python main.py --continuous 2d --N 100 --additions 100000
-  python main.py --continuous 3d --n 20 --additions 50000 --skip-transient 10000
-  python main.py --analyze-continuous 2d
         """,
     )
     # ---- Experiment modes ----
@@ -466,12 +309,6 @@ Examples:
                         help="Run both 2D and 3D perturbation experiments")
     parser.add_argument("--analyze", choices=["2d", "3d"],
                         help="Analyze perturbation experiment results")
-
-    # ---- Continuous-drive modes ----
-    parser.add_argument("--continuous", choices=["2d", "3d"],
-                        help="Run continuous-drive SOC experiment")
-    parser.add_argument("--analyze-continuous", choices=["2d", "3d"],
-                        help="Analyze continuous-drive results (power-law plots)")
 
     # ---- Interactive viewer ----
     parser.add_argument("--view2d", action="store_true",
@@ -489,14 +326,6 @@ Examples:
     parser.add_argument("--trials", type=int, help="Number of trials (perturbation mode)")
     parser.add_argument("--seed", type=int, help="Base random seed")
 
-    # ---- Continuous-drive parameters ----
-    parser.add_argument("--additions", type=int,
-                        help="Number of grain additions (continuous mode, default 100k)")
-    parser.add_argument("--skip-transient", type=int,
-                        help="Transient additions to discard (default 10k)")
-    parser.add_argument("--initial-grains", type=int,
-                        help="Initial grains on every site (default 0 = empty)")
-
     args = parser.parse_args()
 
     # Route to the correct handler
@@ -504,16 +333,6 @@ Examples:
         interactive_view_2d(args)
     elif args.view3d:
         interactive_view_3d(args)
-    elif args.analyze_continuous:
-        if args.analyze_continuous == "2d":
-            analyze_continuous_2d(args)
-        else:
-            analyze_continuous_3d(args)
-    elif args.continuous:
-        if args.continuous == "2d":
-            run_continuous_2d(args)
-        else:
-            run_continuous_3d(args)
     elif args.analyze:
         if args.analyze == "2d":
             analyze_2d(args)

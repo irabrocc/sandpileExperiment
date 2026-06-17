@@ -1,0 +1,69 @@
+% 声明为子文件，指定主文件
+\documentclass[main.tex]{subfiles}
+
+\begin{document}
+\pagestyle{plain}
+\setcounter{chapter}{0}
+
+\chapter{Directional Patterns}
+\label{chap:chapter1}
+
+After stabilizing 3000 trials of $301\times 301$ sandpile grids (each with background 3, plus 3 extra grains at random sites), we examine the pattern formed by cells whose height differs from 3. Far from the center, along a fixed rational direction $(n,m)$, a periodic height pattern emerges. We classify these patterns for all directions with $0 \le n,m \le 7$.
+
+\section{Classification Table for $(n,m)$, $0 \le n,m \le 7$}
+
+Table~\ref{tab:direction-grid} shows the directional pattern for each pair $(n,m)$. Only seven distinct primitive (coprime) directions were observed across all 3000 trials. When a pair $(n,m)$ reduces by $\gcd(n,m)$ to one of these seven primitive directions, the corresponding image is shown; otherwise the entry reads ``not found.''
+
+\begin{table}[H]
+\centering
+\caption{Directional pattern classification for $0 \le n,m \le 7$. Rows index $n$, columns index $m$. Entries show the image of the reduced coprime direction.}
+\label{tab:direction-grid}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+$n \downarrow \, / \, m \to$ & $0$ & $1$ & $2$ & $3$ & $4$ & $5$ & $6$ & $7$ \\
+\hline
+$0$ & --- & \includegraphics[width=1.1cm]{0_1} & \includegraphics[width=1.1cm]{0_1} & \includegraphics[width=1.1cm]{0_1} & \includegraphics[width=1.1cm]{0_1} & \includegraphics[width=1.1cm]{0_1} & \includegraphics[width=1.1cm]{0_1} & \includegraphics[width=1.1cm]{0_1} \\
+\hline
+$1$ & \includegraphics[width=1.1cm]{1_0} & \includegraphics[width=1.1cm]{1_1} & \includegraphics[width=1.1cm]{1_2} & \includegraphics[width=1.1cm]{1_3} & not found & not found & not found & not found \\
+\hline
+$2$ & \includegraphics[width=1.1cm]{1_0} & \includegraphics[width=1.1cm]{2_1} & \includegraphics[width=1.1cm]{1_1} & not found & \includegraphics[width=1.1cm]{1_2} & not found & \includegraphics[width=1.1cm]{1_3} & not found \\
+\hline
+$3$ & \includegraphics[width=1.1cm]{1_0} & \includegraphics[width=1.1cm]{3_1} & not found & \includegraphics[width=1.1cm]{1_1} & not found & not found & \includegraphics[width=1.1cm]{1_2} & not found \\
+\hline
+$4$ & \includegraphics[width=1.1cm]{1_0} & not found & \includegraphics[width=1.1cm]{2_1} & not found & \includegraphics[width=1.1cm]{1_1} & not found & not found & not found \\
+\hline
+$5$ & \includegraphics[width=1.1cm]{1_0} & not found & not found & not found & not found & \includegraphics[width=1.1cm]{1_1} & not found & not found \\
+\hline
+$6$ & \includegraphics[width=1.1cm]{1_0} & not found & \includegraphics[width=1.1cm]{3_1} & \includegraphics[width=1.1cm]{2_1} & not found & not found & \includegraphics[width=1.1cm]{1_1} & not found \\
+\hline
+$7$ & \includegraphics[width=1.1cm]{1_0} & not found & not found & not found & not found & not found & not found & \includegraphics[width=1.1cm]{1_1} \\
+\hline
+\end{tabular}
+\end{table}
+
+The seven observed directions are:
+\[
+(0,1),\;(1,0),\;(1,1),\;(1,2),\;(1,3),\;(2,1),\;(3,1).
+\]
+Note that $(n,m)$ and $(m,n)$ yield distinct patterns in general (e.g., $(1,2)$ vs.\ $(2,1)$ are different), and the negative directions $(-n,m)$, $(n,-m)$, $(-n,-m)$ produce the same patterns by symmetry.
+
+\section{Observed Regularities}
+
+Beyond the classification, several quantitative regularities were noted across all trials.
+
+\subsection{Internal Color Periodicity}
+
+Along any directional line, the color pattern of heights repeats periodically without variation. For instance, a line with  $(2, 1)$ always follows the sequence (brown, white, brown) from left to right.
+
+\subsection{Frequency of Occurrence}
+
+Lines whose slope is close to horizontal or vertical appear less frequently across trials. The vast majority of observed lines are horizontal, vertical, or at a $45^\circ$ angle (slope~$\pm1$). Lines with slopes $1/2$, $1/3$, $2$, or~$3$ are comparatively rare.
+
+\subsection{Vector Sum at Intersections}
+
+When multiple directional lines meet at a single intersection point, the sum of their unit direction vectors equals zero. This suggests a form of local conservation governing the pattern geometry.
+
+
+\end{document}

@@ -1,25 +1,25 @@
 {
-  "num_trials": 2000,
-  "N": 200,
-  "total_elapsed_sec": 3300.2,
-  "trials_per_sec": 0.61,
+  "num_trials": 10000,
+  "N": 301,
+  "total_elapsed_sec": 63394.5,
+  "trials_per_sec": 0.16,
   "topple_stats": {
-    "mean": 1344354.3475,
-    "median": 1407582.0,
-    "std": 258100.0165596948,
-    "min": 118408,
-    "max": 1799696
+    "mean": 4521843.1753,
+    "median": 4760832.5,
+    "std": 922459.5564129857,
+    "min": 530486,
+    "max": 6103255
   },
   "distinct_site_stats": {
-    "mean": 40000.0,
-    "median": 40000.0,
+    "mean": 90601.0,
+    "median": 90601.0,
     "std": 0.0
   },
   "max_grains_overall": 3,
   "distribution": [
-    83468,
-    329448,
-    1464850,
-    78122234
+    624512,
+    2442017,
+    11162228,
+    891781243
   ]
 }

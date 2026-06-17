@@ -622,6 +622,24 @@ def interactive_2d_viewer(grids_dir: str, stats_dir: str | None = None,
                         ticks=range(0, vmax_global + 1))
     cbar.set_label("Grains")
 
+    # --- Local 18×18 patch preview (inset axes) ---
+    local_patches_dir = os.path.join(os.path.dirname(grids_dir), "local_patches")
+    os.makedirs(local_patches_dir, exist_ok=True)
+
+    ax_inset = fig.add_axes([0.76, 0.68, 0.20, 0.20])
+    ax_inset.set_title("18×18 Patch", fontsize=8, pad=3)
+    ax_inset.set_xticks([])
+    ax_inset.set_yticks([])
+    # Draw a border around the inset
+    for spine in ax_inset.spines.values():
+        spine.set_edgecolor("black")
+        spine.set_linewidth(1.5)
+
+    inset_patch = np.zeros((18, 18), dtype=np.int32)
+    im_inset = ax_inset.imshow(inset_patch, cmap=SAND_CMAP_FULL,
+                                vmin=0, vmax=max(4, vmax_global),
+                                interpolation="nearest", origin="upper")
+
     # --- Trial slider ---
     ax_slider_trial = plt.axes([0.15, 0.06, 0.75, 0.03])
     slider_trial = Slider(
@@ -691,7 +709,106 @@ def interactive_2d_viewer(grids_dir: str, stats_dir: str | None = None,
         elif event.key == "left" or event.key == "a":
             slider_trial.set_val(max(current_trial_idx_pos - 1, 0))
 
-    fig.canvas.mpl_connect("key_press_event", on_key)
+    # --- Mouse handlers for local 18×18 patch ---
+    def _extract_patch(grid, x, y):
+        """Extract an 18×18 patch centred at (x, y) from *grid*.
+        Clamps to valid indices; returns the (possibly smaller) patch
+        and its top-left corner (y0, x0) in grid coordinates."""
+        N = grid.shape[0]
+        half = 9
+        x0 = max(0, x - half)
+        x1 = min(N, x + half)
+        y0 = max(0, y - half)
+        y1 = min(N, y + half)
+        return grid[y0:y1, x0:x1], y0, x0
+
+    def _save_patch(patch, trial_idx, x, y):
+        """Render and save a local patch to disk with grain-count labels."""
+        vmax = max(int(patch.max()), 4)
+        save_name = f"patch_trial_{trial_idx:06d}_x{x}_y{y}.png"
+        save_path = os.path.join(local_patches_dir, save_name)
+
+        fig_p, ax_p = plt.subplots(figsize=(3.5, 3.5))
+        ax_p.imshow(patch, cmap=SAND_CMAP_FULL, vmin=0, vmax=vmax,
+                    interpolation="nearest", origin="upper")
+        ax_p.set_title(f"Trial {trial_idx}  centre=({x},{y})  "
+                       f"{patch.shape[0]}×{patch.shape[1]}",
+                       fontsize=9)
+        # Annotate each cell with its grain count
+        for i in range(patch.shape[0]):
+            for j in range(patch.shape[1]):
+                ax_p.text(j, i, str(patch[i, j]),
+                          ha="center", va="center", fontsize=6,
+                          color="black" if patch[i, j] <= 2 else "white")
+        ax_p.set_xticks([])
+        ax_p.set_yticks([])
+        fig_p.tight_layout(pad=0.5)
+        fig_p.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(fig_p)
+        print(f"Saved 18×18 local patch → {save_path}")
+
+    def on_mouse_move(event):
+        """Update the 18×18 preview inset as the mouse moves over the grid."""
+        if event.inaxes != ax_img:
+            return
+        x = int(round(event.xdata))
+        y = int(round(event.ydata))
+        grid = cache["grid"]
+        N = grid.shape[0]
+
+        half = 9
+        # Build an 18×18 padded array centred at (x,y)
+        padded = np.full((18, 18), -1, dtype=np.int32)
+        x0 = max(0, x - half)
+        x1 = min(N, x + half)
+        y0 = max(0, y - half)
+        y1 = min(N, y + half)
+        sub = grid[y0:y1, x0:x1]
+
+        py0 = half - (y - y0)
+        py1 = py0 + sub.shape[0]
+        px0 = half - (x - x0)
+        px1 = px0 + sub.shape[1]
+        padded[py0:py1, px0:px1] = sub
+
+        im_inset.set_data(padded)
+        vmax_local = max(int(sub.max()), 4)
+        im_inset.set_clim(vmin=0, vmax=vmax_local)
+        fig.canvas.draw_idle()
+
+    def on_click(event):
+        """Save the 18×18 local patch on mouse click (left button)."""
+        if event.inaxes != ax_img:
+            return
+        if event.button != 1:  # left-click only
+            return
+        x = int(round(event.xdata))
+        y = int(round(event.ydata))
+        grid = cache["grid"]
+        patch, _, _ = _extract_patch(grid, x, y)
+        trial_idx = trial_indices[current_trial_idx_pos]
+        _save_patch(patch, trial_idx, x, y)
+
+    def on_key_extended(event):
+        """Extended keyboard handler: 's' saves the patch at the
+        last-known mouse position (falls back to grid centre)."""
+        if event.key == "s":
+            if event.inaxes == ax_img and event.xdata is not None:
+                x = int(round(event.xdata))
+                y = int(round(event.ydata))
+            else:
+                N = cache["grid"].shape[0]
+                x, y = N // 2, N // 2
+            grid = cache["grid"]
+            patch, _, _ = _extract_patch(grid, x, y)
+            trial_idx = trial_indices[current_trial_idx_pos]
+            _save_patch(patch, trial_idx, x, y)
+        else:
+            on_key(event)  # delegate to the original arrow-key handler
+
+    fig.canvas.mpl_connect("key_press_event", on_key_extended)
+    fig.canvas.mpl_connect("motion_notify_event", on_mouse_move)
+    fig.canvas.mpl_connect("button_press_event", on_click)
 
     plt.show()
 
@@ -871,159 +988,4 @@ def interactive_3d_viewer(grids_dir: str, stats_dir: str | None = None,
     plt.show()
 
 
-# ---------------------------------------------------------------------------
-# Power-law distribution visualisation
-# ---------------------------------------------------------------------------
 
-def plot_power_law_distribution(
-    sizes: list[int],
-    tau: float | None = None,
-    save_path: str | None = None,
-    bins_per_decade: float = 2.0,
-    title: str = "Avalanche Size Distribution",
-    figsize: tuple = (14, 5),
-):
-    """Plot the avalanche-size distribution with power-law diagnostics.
-
-    Creates a 3-panel figure:
-      Left   — Log-binned histogram (probability density) with power-law fit
-      Center — Complementary CDF P(S > s)
-      Right  — Time series of avalanche sizes
-
-    Parameters
-    ----------
-    sizes : list[int]
-        Avalanche sizes from continuous driving.
-    tau : float | None
-        If given, overlays a reference power-law line s^(-tau).
-    save_path : str | None
-    bins_per_decade : float
-    title : str
-    figsize : tuple
-    """
-    import numpy as np
-    from continuous_drive import log_binned_histogram, complementary_cdf
-
-    sizes_arr = np.array([s for s in sizes if s > 0], dtype=np.float64)
-    if len(sizes_arr) == 0:
-        print("No positive avalanche sizes to plot.")
-        return
-
-    fig, axes = plt.subplots(1, 3, figsize=figsize)
-
-    # ---- Panel 1: Log-binned histogram ----
-    ax1 = axes[0]
-    centers, density, edges = log_binned_histogram(sizes, bins_per_decade)
-    ax1.loglog(centers, density, "o", markersize=4, color="steelblue",
-               alpha=0.7, label="Data")
-
-    if tau is not None and len(centers) > 0:
-        # Normalise reference line to pass through the first data point
-        c0 = density[0] / (centers[0] ** (-tau))
-        x_ref = np.logspace(np.log10(centers[0]), np.log10(centers[-1]), 200)
-        ax1.loglog(x_ref, c0 * x_ref ** (-tau), "r--", linewidth=1.5,
-                   label=f"$s^{{-{tau:.2f}}}$")
-
-    ax1.set_xlabel("Avalanche size $s$")
-    ax1.set_ylabel("Probability density $P(s)$")
-    ax1.set_title("Log-binned PDF")
-    ax1.legend(fontsize=9)
-    ax1.grid(True, alpha=0.3, which="both")
-
-    # ---- Panel 2: Complementary CDF ----
-    ax2 = axes[1]
-    s_vals, ccdf = complementary_cdf(sizes)
-    if len(s_vals) > 0:
-        ax2.loglog(s_vals, ccdf, "o", markersize=3, color="coral",
-                   alpha=0.7)
-        if tau is not None and tau > 1:
-            c0_ccdf = ccdf[0] / (s_vals[0] ** (-tau + 1))
-            x_ref = np.logspace(np.log10(s_vals[0]), np.log10(s_vals[-1]), 200)
-            ax2.loglog(x_ref, c0_ccdf * x_ref ** (-tau + 1), "r--",
-                       linewidth=1.5, label=f"$s^{{-{tau - 1:.2f}}}$")
-    ax2.set_xlabel("Avalanche size $s$")
-    ax2.set_ylabel("$P(S > s)$")
-    ax2.set_title("Complementary CDF")
-    ax2.legend(fontsize=9)
-    ax2.grid(True, alpha=0.3, which="both")
-
-    # ---- Panel 3: Time series (first 2000 points) ----
-    ax3 = axes[2]
-    n_show = min(2000, len(sizes_arr))
-    ax3.plot(range(n_show), sizes_arr[:n_show], linewidth=0.3,
-             color="darkgreen")
-    ax3.set_xlabel("Addition index")
-    ax3.set_ylabel("Avalanche size")
-    ax3.set_title("Avalanche Size Time Series")
-    ax3.set_yscale("log")
-    ax3.grid(True, alpha=0.3)
-
-    fig.suptitle(title, fontsize=14, fontweight="bold")
-    fig.tight_layout()
-    if save_path:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        fig.savefig(save_path, dpi=200, bbox_inches="tight")
-        plt.close(fig)
-    else:
-        plt.show()
-
-
-def plot_power_law_comparison(
-    sizes_2d: list[int],
-    sizes_3d: list[int] | None = None,
-    tau_2d: float | None = None,
-    tau_3d: float | None = None,
-    save_path: str | None = None,
-):
-    """Compare avalanche-size distributions between 2D and 3D.
-
-    Parameters
-    ----------
-    sizes_2d : list[int]
-    sizes_3d : list[int] | None
-    tau_2d, tau_3d : float | None
-    save_path : str | None
-    """
-    import numpy as np
-    from continuous_drive import log_binned_histogram
-
-    fig, ax = plt.subplots(1, 1, figsize=(8, 7))
-
-    # 2D data
-    centers_2d, dens_2d, _ = log_binned_histogram(sizes_2d)
-    ax.loglog(centers_2d, dens_2d, "o", markersize=4, color="steelblue",
-              alpha=0.7, label="2D")
-
-    if tau_2d is not None and len(centers_2d) > 0:
-        c0 = dens_2d[0] / (centers_2d[0] ** (-tau_2d))
-        x_ref = np.logspace(np.log10(centers_2d[0]),
-                            np.log10(centers_2d[-1]), 200)
-        ax.loglog(x_ref, c0 * x_ref ** (-tau_2d), "--", color="steelblue",
-                  linewidth=1.5, label=f"2D: $s^{{-{tau_2d:.2f}}}$")
-
-    # 3D data
-    if sizes_3d is not None and len(sizes_3d) > 0:
-        centers_3d, dens_3d, _ = log_binned_histogram(sizes_3d)
-        ax.loglog(centers_3d, dens_3d, "s", markersize=4, color="coral",
-                  alpha=0.7, label="3D")
-
-        if tau_3d is not None and len(centers_3d) > 0:
-            c0 = dens_3d[0] / (centers_3d[0] ** (-tau_3d))
-            x_ref = np.logspace(np.log10(centers_3d[0]),
-                                np.log10(centers_3d[-1]), 200)
-            ax.loglog(x_ref, c0 * x_ref ** (-tau_3d), "--", color="coral",
-                      linewidth=1.5, label=f"3D: $s^{{-{tau_3d:.2f}}}$")
-
-    ax.set_xlabel("Avalanche size $s$", fontsize=13)
-    ax.set_ylabel("Probability density $P(s)$", fontsize=13)
-    ax.set_title("2D vs 3D Avalanche-Size Distributions", fontsize=14)
-    ax.legend(fontsize=11)
-    ax.grid(True, alpha=0.3, which="both")
-
-    fig.tight_layout()
-    if save_path:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        fig.savefig(save_path, dpi=200, bbox_inches="tight")
-        plt.close(fig)
-    else:
-        plt.show()
