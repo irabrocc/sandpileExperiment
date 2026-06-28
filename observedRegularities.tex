@@ -1,4 +1,3 @@
-% 声明为子文件，指定主文件
 \documentclass[main.tex]{subfiles}
 
 \begin{document}
@@ -11,17 +10,66 @@
 
 Beyond the classification, several quantitative regularities were noted across all trials.
 
-\subsection{Internal Color Periodicity}
+\section{Internal Color Periodicity}
 
-Along any directional line, the color pattern of heights repeats periodically without variation. For instance, a line with  $(2, 1)$ always follows the sequence (brown, white, brown) from left to right.
+Along any directional line, the color pattern of heights repeats periodically without variation. For instance, a line in direction $(2, 1)$ always follows the sequence (Blue, White, Blue) from left to right.
 
-\subsection{Frequency of Occurrence}
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{2_1}
+\caption{Directional pattern $(2,1)$, showing the periodic sequence (Blue, White, Blue).}
+\end{figure}
+
+\section{Frequency of Occurrence}
 
 Lines whose slope is close to horizontal or vertical appear less frequently across trials. The vast majority of observed lines are horizontal, vertical, or at a $45^\circ$ angle (slope~$\pm1$). Lines with slopes $1/2$, $1/3$, $2$, or~$3$ are comparatively rare.
 
-\subsection{Vector Sum at Intersections}
+\section{Vector Sum at Intersections}
 
-When multiple directional lines meet at a single intersection point, the sum of their unit direction vectors equals zero. This suggests a form of local conservation governing the pattern geometry.
+This is the most interesting observation. When several directional lines meet at one intersection point, the sum of their direction vectors equals zero. This suggests a form of local conservation governing the pattern geometry.
+
+Starting from the two basic directions $(1, 0)$ and $(0, 1)$, the local conservation law produces the remaining observed directions $(1, 1)$, $(2, 1)$, $(1, 2)$, $(3, 1)$, $(1, 3)$. The following examples illustrate how each new direction arises from an intersection of two earlier ones.
+
+The intersection of $(1, 0)$ and $(0, 1)$ produces $(1, 1)$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{first_intersection}
+\caption{Intersection of $(1,0)$ and $(0,1)$, producing $(1,1)$.}
+\end{figure}
+
+The intersection of $(1, 1)$ and $(0, 1)$ produces $(1, 2)$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{second_intersection}
+\caption{Intersection of $(1,1)$ and $(0,1)$, producing $(1,2)$.}
+\end{figure}
+
+The intersection of $(1, 2)$ and $(0, 1)$ produces $(1, 3)$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{third_intersection}
+\caption{Intersection of $(1,2)$ and $(0,1)$, producing $(1,3)$.}
+\end{figure}
+
+An intersection may also involve four directional lines. For example, $(0, 1)$, $(2, 1)$, $(1, 1)$ and $(1, 1)$ meet at one point, since $(0, 1) + (2, 1) = (1, 1) + (1, 1)$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{intersection_of_four}
+\caption{Intersection of four lines $(0,1)$, $(2,1)$, $(1,1)$, $(1,1)$, whose direction vectors balance pairwise.}
+\end{figure}
+
+\subsection{Pattern Explanation via the Local Conservation Law}
+
+The zero-sum rule at intersections accounts for several of the observations above.
+
+\paragraph{No irrational slopes.} Every directional line is born at an intersection of two existing lines, and its direction vector is the integer sum (or difference) of the two parent vectors. Starting from the integer vectors $(1,0)$ and $(0,1)$, repeated addition can only ever produce integer vectors $(n,m)$. The slope $m/n$ of any such line is therefore a rational number. An irrational slope would require an irrational component in the direction vector, which integer arithmetic can never generate. This explains why no line with an irrational slope appeared in any of the $10\,000$ trials.
+
+
+\paragraph{Rarity of nearly horizontal or vertical lines.} A line with slope $1/n$ (or $n$) for large $n$ requires building up a direction vector whose components are very different in size. Under the zero-sum rule this means adding the basic vertical direction repeatedly to a line that is already nearly horizontal, which demands several successive intersections along the same path. Each extra intersection is a rare event, so directions such as $(1,3)$ or $(3,1)$ turn up far less often than $(1,1)$, which is produced by a single intersection of the two most common lines, $(1,0)$ and $(0,1)$. In contrast, the horizontal, vertical, and $45^\circ$ directions are produced almost everywhere, since they correspond to the simplest possible sums.
 
 
 \end{document}
