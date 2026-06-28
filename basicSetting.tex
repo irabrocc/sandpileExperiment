@@ -1,0 +1,73 @@
+\documentclass[main.tex]{subfiles}
+
+\begin{document}
+\pagestyle{plain}
+\setcounter{chapter}{0}
+
+\chapter{Basic Setting}
+\label{chap:basic-setting}
+
+\section{The Abelian Sandpile Model}
+
+The Abelian sandpile model is a cellular automaton introduced by Bak, Tang and Wiesenfeld. A $d$-dimensional lattice holds a non-negative integer $h(x)$ at each site $x$, the number of grains. A site is \emph{stable} when $h(x) < T$, where $T$ is the toppling threshold; it is \emph{unstable} when $h(x) \ge T$. An unstable site \emph{topples}: it loses $T$ grains and sends one grain to each of its $2d$ nearest neighbours. Grains that leave the boundary are lost (open boundary condition). Repeated toppling eventually returns every site to a stable configuration; this final configuration is independent of the order of topplings (the Abelian property).
+
+In two dimensions the grid is $N \times N$, the threshold is $T=4$, and each site has four orthogonal neighbours. In three dimensions the cube is $n \times n \times n$, the threshold is $T=6$, and each site has six neighbours ($\pm x,\pm y,\pm z$).
+
+\section{Implementation of the Sandpile}
+\label{sec:impl-sandpile}
+
+The model is implemented in Python with NumPy. Two classes, \texttt{Sandpile2D} and \texttt{Sandpile3D}, share the same structure; we describe the 2D case for brevity. The grid is stored as a NumPy integer array. Stabilisation does not rescan the whole grid each step; instead it keeps a queue of currently unstable sites, so the running time is $O(N^2 + \text{number of topples})$. The core routine is:
+
+\begin{lstlisting}[language=Python, caption={Stabilisation by queue (2D, simplified).}]
+def stabilize(grid, N, T=4):
+    queue = deque(sites where grid >= T)
+    topples = 0
+    while queue:
+        (x, y) = queue.popleft()
+        if grid[x, y] < T:        # already stabilised by a neighbour
+            continue
+        grid[x, y] -= T           # topple
+        topples += 1
+        for (nx, ny) in neighbours(x, y):   # up, down, left, right
+            if inside(nx, ny, N):
+                grid[nx, ny] += 1
+                if grid[nx, ny] >= T:
+                    queue.append((nx, ny))
+    return grid, topples
+\end{lstlisting}
+
+Each toppling event removes $T$ grains from a site and distributes one grain to every in-bounds neighbour; any grain crossing the boundary is discarded. The 3D version is identical except that the threshold is $6$ and each toppling distributes to six neighbours instead of four.
+
+\section{Experiment Design}
+\label{sec:experiment-design}
+
+The experiments follow the instructions given in the email correspondence that initiated this project. The protocol for a single trial is:
+
+\begin{enumerate}
+    \item Start with an $N \times N$ (2D) or $n \times n \times n$ (3D) grid.
+    \item Put a fixed \emph{background} of grains on every site: $3$ grains in 2D, $5$ grains in 3D. The background is chosen one below the threshold, so the grid is stable but on the verge of toppling.
+    \item Select three random distinct sites and add one extra grain to each. At least one site now reaches the threshold and an avalanche begins.
+    \item Stabilise the grid with the routine of Section~\ref{sec:impl-sandpile}.
+    \item Save the final stable grid to disk and record statistics: total topplings, number of distinct toppled sites, the grain distribution, the seed, and the perturbed positions.
+\end{enumerate}
+
+This trial is repeated many times ($10\,000$ in 2D, $2\,000$ in 3D). Each trial uses an independent random seed $s_i = s_0 + i$, so the perturbation sites differ every trial while the experiment as a whole remains reproducible. A central configuration file (\texttt{config.py}) holds all parameters---grid size, threshold, background, number of perturbation sites, number of trials, seed and output directories---so that the whole experiment can be retuned from one place. The driver (\texttt{main.py}) reads these parameters, runs the batch, and saves grids and aggregate statistics incrementally so that progress survives an interruption.
+
+After the batch completes, the same driver produces the classification study of Chapter~\ref{chap:classification}: for each direction $(n,m)$ with $0 \le n,m \le 7$ it extracts the height pattern far from the centre along that direction and arranges the resulting images in a table.
+
+\section{Visualisation}
+\label{sec:visualisation}
+
+A separate module (\texttt{visualize.py}, built on Matplotlib) turns the saved grids into figures. Each grain count is mapped to a fixed colour (white for $0$, moccasin for $1$, sandy brown for $2$, peru for $3$, and a warm colour for higher counts), so that the height pattern is read directly as a coloured image. The module provides:
+
+\begin{itemize}
+    \item single-grid heatmaps and side-by-side comparisons of several trials;
+    \item an avalanche-size histogram over all trials;
+    \item a toppling-frequency map, obtained by averaging many stabilised grids against the background, which reveals the directions that recur across trials;
+    \item for 3D, a set of $z$-slices and a slice montage, since a 3D grid is viewed one 2D layer at a time;
+    \item interactive viewers with trial and slice sliders, so the user can browse the thousands of saved grids by hand and look for recurring structures.
+\end{itemize}
+
+These tools were used both to spot the regularities reported in Chapter~\ref{chap:classification} and to produce the figures in this report.
+
+\end{document}

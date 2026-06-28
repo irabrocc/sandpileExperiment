@@ -27,10 +27,10 @@ from sandpile_2d import Sandpile2D
 # ---------------------------------------------------------------------------
 
 def run_single_trial(N: int, seed: int | None = None,
-                     threshold: int = 4,
-                     initial_grains: int = 3,
-                     num_perturb: int = 3,
-                     perturb_amount: int = 1) -> dict:
+                     threshold: int | None = None,
+                     initial_grains: int | None = None,
+                     num_perturb: int | None = None,
+                     perturb_amount: int | None = None) -> dict:
     """Run one sandpile trial and return a result dictionary.
 
     Parameters
@@ -39,14 +39,17 @@ def run_single_trial(N: int, seed: int | None = None,
         Grid side length.
     seed : int | None
         Random seed for reproducibility.
-    threshold : int
-        Toppling threshold (default 4 for 2D).
-    initial_grains : int
-        Grains on every site before perturbation.
-    num_perturb : int
-        Number of random sites to perturb.
-    perturb_amount : int
-        Grains added to each perturbed site.
+    threshold : int | None
+        Toppling threshold; defaults to ``config.TOPPLE_THRESHOLD_2D``.
+    initial_grains : int | None
+        Grains on every site before perturbation;
+        defaults to ``config.INITIAL_GRAINS_2D``.
+    num_perturb : int | None
+        Number of random sites to perturb;
+        defaults to ``config.NUM_PERTURB_SITES``.
+    perturb_amount : int | None
+        Grains added to each perturbed site;
+        defaults to ``config.PERTURB_AMOUNT``.
 
     Returns
     -------
@@ -60,6 +63,15 @@ def run_single_trial(N: int, seed: int | None = None,
         seed        – int, the seed used
         perturb_sites – list of (x,y), the perturbed positions
     """
+    if threshold is None:
+        threshold = config.TOPPLE_THRESHOLD_2D
+    if initial_grains is None:
+        initial_grains = config.INITIAL_GRAINS_2D
+    if num_perturb is None:
+        num_perturb = config.NUM_PERTURB_SITES
+    if perturb_amount is None:
+        perturb_amount = config.PERTURB_AMOUNT
+
     rng = np.random.default_rng(seed)
     sp = Sandpile2D(N, threshold=threshold)
     sp.fill(initial_grains)
@@ -90,11 +102,17 @@ def run_single_trial(N: int, seed: int | None = None,
 
 def run_batch(N: int, num_trials: int,
               output_dir: str | None = None,
-              threshold: int = 4,
-              initial_grains: int = 3,
-              base_seed: int = 42,
-              save_interval: int = 100) -> list[dict]:
+              threshold: int | None = None,
+              initial_grains: int | None = None,
+              base_seed: int | None = None,
+              save_interval: int | None = None,
+              num_perturb: int | None = None,
+              perturb_amount: int | None = None) -> list[dict]:
     """Run *num_trials* sandpile experiments.
+
+    Any parameter left as ``None`` falls back to the value defined in
+    :mod:`config`, which is the single source of truth. Pass explicit
+    values (as ``main.py`` does) to override per-run.
 
     Parameters
     ----------
@@ -104,14 +122,18 @@ def run_batch(N: int, num_trials: int,
         Number of trials to run.
     output_dir : str | None
         Directory to save grids and stats. If None, uses config.
-    threshold : int
+    threshold : int | None
         Toppling threshold.
-    initial_grains : int
+    initial_grains : int | None
         Initial grains on every site.
-    base_seed : int
+    base_seed : int | None
         Base seed; trial i uses base_seed + i.
-    save_interval : int
+    save_interval : int | None
         Save intermediate aggregate results every N trials.
+    num_perturb : int | None
+        Number of random sites to perturb per trial.
+    perturb_amount : int | None
+        Grains added to each perturbed site.
 
     Returns
     -------
@@ -120,6 +142,18 @@ def run_batch(N: int, num_trials: int,
     """
     if output_dir is None:
         output_dir = config.OUTPUT_2D_DIR
+    if threshold is None:
+        threshold = config.TOPPLE_THRESHOLD_2D
+    if initial_grains is None:
+        initial_grains = config.INITIAL_GRAINS_2D
+    if base_seed is None:
+        base_seed = config.BASE_SEED
+    if save_interval is None:
+        save_interval = config.SAVE_INTERVAL
+    if num_perturb is None:
+        num_perturb = config.NUM_PERTURB_SITES
+    if perturb_amount is None:
+        perturb_amount = config.PERTURB_AMOUNT
 
     grids_dir = os.path.join(output_dir, "grids")
     stats_dir = os.path.join(output_dir, "stats")
@@ -140,8 +174,8 @@ def run_batch(N: int, num_trials: int,
             N, seed=seed,
             threshold=threshold,
             initial_grains=initial_grains,
-            num_perturb=config.NUM_PERTURB_SITES,
-            perturb_amount=config.PERTURB_AMOUNT,
+            num_perturb=num_perturb,
+            perturb_amount=perturb_amount,
         )
 
         # Save grid to disk (as .npy), keep metadata in memory
@@ -169,7 +203,7 @@ def run_batch(N: int, num_trials: int,
 
     # Final save
     _save_final(all_results, topple_list, distinct_list, max_grain_list,
-                distributions, stats_dir, start_time, num_trials)
+                distributions, stats_dir, start_time, num_trials, N)
 
     return all_results
 
@@ -199,7 +233,7 @@ def _save_intermediate(done: int, all_results, topple_list, distinct_list,
 
 
 def _save_final(all_results, topple_list, distinct_list, max_grain_list,
-                distributions, stats_dir, start_time, num_trials):
+                distributions, stats_dir, start_time, num_trials, N):
     """Save final metadata and statistics."""
     elapsed = time.time() - start_time
 
@@ -211,7 +245,7 @@ def _save_final(all_results, topple_list, distinct_list, max_grain_list,
     # Summary statistics
     summary = {
         "num_trials": num_trials,
-        "N": config.N_2D if "config" in globals() else 0,
+        "N": N,
         "total_elapsed_sec": round(elapsed, 1),
         "trials_per_sec": round(num_trials / elapsed, 2) if elapsed > 0 else 0,
         "topple_stats": {

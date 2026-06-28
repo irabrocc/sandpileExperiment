@@ -15,21 +15,29 @@ import matplotlib.colors as mcolors
 # Colour map
 # ---------------------------------------------------------------------------
 
-# Discrete colour map for small grain counts (0-4 common, 5+ rare)
+# Discrete colour map for sandpile grain counts
+# 2D threshold = 4, 3D threshold = 6
+# High-contrast hue progression: each grain count gets a distinct, easily
+# told-apart colour.  Values 1 (yellow) and 2 (blue) are deliberately
+# complementary so they are never confused.
 _SAND_COLORS = [
-    "#ffffff",  # 0 – white  (empty)
-    "#ffe4b5",  # 1 – moccasin
-    "#f4a460",  # 2 – sandy brown
-    "#cd853f",  # 3 – peru
-    "#8b4513",  # 4 – saddle brown
-    "#ff4500",  # 5 – orange red
-    "#dc143c",  # 6 – crimson
-    "#800080",  # 7 – purple
-    "#000080",  # 8 – navy
+    "#f7f7f7",  # 0 – off-white (empty)
+    "#ffd966",  # 1 – warm yellow
+    "#6fa8dc",  # 2 – sky blue
+    "#93c47d",  # 3 – light green (2D background)
+    "#e69138",  # 4 – warm orange
+    "#8e7133",  # 5 – brown (3D background)
+    "#cc0000",  # 6+ – red (critical / avalanche)
 ]
-SAND_CMAP = mcolors.ListedColormap(_SAND_COLORS[:4] + ["#ff4500"])
-# Extended version for higher grain counts
-SAND_CMAP_FULL = mcolors.ListedColormap(_SAND_COLORS)
+SAND_CMAP = mcolors.ListedColormap(_SAND_COLORS)
+
+# BoundaryNorm so that every integer grain count maps to exactly one colour,
+# regardless of the data range or vmax used by imshow.  Without this,
+# ListedColormap stretches its colours across [vmin, vmax], so the same
+# grain count can render as different colours when vmax differs between the
+# static plot functions and the interactive viewers.
+_SAND_BOUNDS = [i - 0.5 for i in range(len(_SAND_COLORS) + 1)]
+SAND_NORM = mcolors.BoundaryNorm(_SAND_BOUNDS, ncolors=len(_SAND_COLORS))
 
 
 # ---------------------------------------------------------------------------
@@ -48,26 +56,40 @@ def plot_grid(grid: np.ndarray, title: str = "", save_path: str | None = None,
     save_path : str | None
         If given, saves the figure to this path.
     cmap : Colormap | None
-        Defaults to SAND_CMAP_FULL.
+        Defaults to SAND_CMAP.
     vmin, vmax : int
-        Color scale range.
+        Ignored when *cmap* is the default SAND_CMAP (the SAND_NORM
+        BoundaryNorm is used instead so colours are consistent across
+        all views).  Kept for API compatibility.
     figsize : tuple
     show_colorbar : bool
     """
     if cmap is None:
-        cmap = SAND_CMAP_FULL
+        cmap = SAND_CMAP
+        norm = SAND_NORM
+    else:
+        norm = None
     if vmax is None:
-        vmax = max(int(grid.max()), 4)
+        vmax = max(int(grid.max()), len(_SAND_COLORS) - 1)
 
     fig, ax = plt.subplots(figsize=figsize)
-    im = ax.imshow(grid, cmap=cmap, vmin=vmin, vmax=vmax,
-                   interpolation="nearest", origin="upper")
+    if norm is not None:
+        im = ax.imshow(grid, cmap=cmap, norm=norm,
+                       interpolation="nearest", origin="upper")
+    else:
+        im = ax.imshow(grid, cmap=cmap, vmin=vmin, vmax=vmax,
+                       interpolation="nearest", origin="upper")
     ax.set_title(title, fontsize=14)
     ax.set_xlabel("x")
     ax.set_ylabel("y")
 
     if show_colorbar:
-        cbar = plt.colorbar(im, ax=ax, shrink=0.82, ticks=range(vmin, vmax + 1))
+        if norm is not None:
+            cbar = plt.colorbar(im, ax=ax, shrink=0.82,
+                                ticks=range(len(_SAND_COLORS)))
+        else:
+            cbar = plt.colorbar(im, ax=ax, shrink=0.82,
+                                ticks=range(vmin, vmax + 1))
         cbar.set_label("Grains")
 
     fig.tight_layout()
@@ -99,12 +121,9 @@ def plot_grid_comparison(grids: list[np.ndarray], titles: list[str],
                              figsize=(ncols * figsize_per, nrows * figsize_per))
     axes = np.atleast_1d(axes).flatten()
 
-    vmax = max(int(g.max()) for g in grids)
-    vmax = max(vmax, 4)
-
     for i, (g, t) in enumerate(zip(grids, titles)):
         ax = axes[i]
-        ax.imshow(g, cmap=SAND_CMAP_FULL, vmin=0, vmax=vmax,
+        ax.imshow(g, cmap=SAND_CMAP, norm=SAND_NORM,
                   interpolation="nearest", origin="upper")
         ax.set_title(t, fontsize=10)
         ax.axis("off")
@@ -262,11 +281,9 @@ def plot_3d_slices(grid_3d: np.ndarray, z_slices: list[int] | None = None,
                              figsize=(ncols * figsize_per, nrows * figsize_per))
     axes = np.atleast_1d(axes).flatten()
 
-    vmax = max(int(grid_3d.max()), 4)
-
     for i, z in enumerate(z_slices):
         ax = axes[i]
-        ax.imshow(grid_3d[:, :, z], cmap=SAND_CMAP_FULL, vmin=0, vmax=vmax,
+        ax.imshow(grid_3d[:, :, z], cmap=SAND_CMAP, norm=SAND_NORM,
                   interpolation="nearest", origin="upper")
         ax.set_title(f"z = {z}", fontsize=9)
         ax.axis("off")
@@ -310,12 +327,9 @@ def plot_3d_slice_montage(grids_3d: list[np.ndarray],
     if z is None:
         z = grids_3d[0].shape[0] // 2
 
-    vmax = max(int(g.max()) for g in grids_3d)
-    vmax = max(vmax, 6)
-
     for i, (g, lbl) in enumerate(zip(grids_3d, labels)):
         ax = axes[i]
-        ax.imshow(g[:, :, z], cmap=SAND_CMAP_FULL, vmin=0, vmax=vmax,
+        ax.imshow(g[:, :, z], cmap=SAND_CMAP, norm=SAND_NORM,
                   interpolation="nearest", origin="upper")
         ax.set_title(lbl, fontsize=10)
         ax.axis("off")
@@ -574,27 +588,24 @@ def interactive_2d_viewer(grids_dir: str, stats_dir: str | None = None,
                 metadata_list = json.load(f)
             metadata_map = {i: m for i, m in enumerate(metadata_list)}
 
-    # --- Load first grid to determine vmax ---
+    # --- Load first grid ---
     path0 = os.path.join(grids_dir, f"trial_{trial_indices[0]:06d}.npy")
     sample_grid = np.load(path0)
-    vmax_global = max(int(sample_grid.max()), 4)
 
     # Clamp initial value
     trial_idx_pos = trial_indices.index(initial_trial) if initial_trial in trial_indices else 0
     current_trial_idx_pos = trial_idx_pos
 
     # --- Build the figure ---
-    fig, ax_img = plt.subplots(figsize=(8, 9))
-    plt.subplots_adjust(bottom=0.15, left=0.12, right=0.95)
+    fig, ax_img = plt.subplots(figsize=(8, 9.5))
+    plt.subplots_adjust(bottom=0.18, left=0.10, right=0.88)
 
     # Initial display
     trial_idx = trial_indices[current_trial_idx_pos]
     path = os.path.join(grids_dir, f"trial_{trial_idx:06d}.npy")
     grid = np.load(path)
-    vmax_global = max(int(grid.max()), 4)
 
-    im = ax_img.imshow(grid, cmap=SAND_CMAP_FULL,
-                       vmin=0, vmax=vmax_global,
+    im = ax_img.imshow(grid, cmap=SAND_CMAP, norm=SAND_NORM,
                        interpolation="nearest", origin="upper")
 
     # --- Perturbation site markers ---
@@ -615,18 +626,28 @@ def interactive_2d_viewer(grids_dir: str, stats_dir: str | None = None,
     ax_title = ax_img.set_title(title_text, fontsize=13)
     ax_img.set_xlabel("x")
     ax_img.set_ylabel("y")
-    ax_img.legend(loc="upper center", bbox_to_anchor=(0.5, -0.06),
-                  fontsize=9, framealpha=0.85, facecolor="white", ncol=1)
 
-    cbar = plt.colorbar(im, ax=ax_img, shrink=0.82,
-                        ticks=range(0, vmax_global + 1))
-    cbar.set_label("Grains")
+    # --- Colorbar (placed explicitly to the right, outside the axes) ---
+    cbar_ax = fig.add_axes([0.90, 0.30, 0.03, 0.50])
+    cbar = fig.colorbar(im, cax=cbar_ax,
+                        ticks=range(len(_SAND_COLORS)))
+    cbar.set_label("Grains", fontsize=10)
+    cbar.ax.tick_params(labelsize=9)
 
-    # --- Local 18×18 patch preview (inset axes) ---
+    # --- Perturb-sites legend (below the colorbar) ---
+    legend_ax = fig.add_axes([0.86, 0.20, 0.12, 0.06])
+    legend_ax.axis("off")
+    legend_ax.legend(
+        [perturb_markers], ["Perturb sites"],
+        loc="center", fontsize=8, framealpha=0.85, facecolor="white",
+        ncol=1, markerscale=0.6, handletextpad=0.3,
+    )
+
+    # --- Local 18×18 patch preview (inset axes, top-left of grid) ---
     local_patches_dir = os.path.join(os.path.dirname(grids_dir), "local_patches")
     os.makedirs(local_patches_dir, exist_ok=True)
 
-    ax_inset = fig.add_axes([0.76, 0.68, 0.20, 0.20])
+    ax_inset = fig.add_axes([0.12, 0.75, 0.18, 0.18])
     ax_inset.set_title("18×18 Patch", fontsize=8, pad=3)
     ax_inset.set_xticks([])
     ax_inset.set_yticks([])
@@ -636,12 +657,11 @@ def interactive_2d_viewer(grids_dir: str, stats_dir: str | None = None,
         spine.set_linewidth(1.5)
 
     inset_patch = np.zeros((18, 18), dtype=np.int32)
-    im_inset = ax_inset.imshow(inset_patch, cmap=SAND_CMAP_FULL,
-                                vmin=0, vmax=max(4, vmax_global),
+    im_inset = ax_inset.imshow(inset_patch, cmap=SAND_CMAP, norm=SAND_NORM,
                                 interpolation="nearest", origin="upper")
 
     # --- Trial slider ---
-    ax_slider_trial = plt.axes([0.15, 0.06, 0.75, 0.03])
+    ax_slider_trial = plt.axes([0.15, 0.05, 0.73, 0.03])
     slider_trial = Slider(
         ax=ax_slider_trial,
         label="Trial",
@@ -656,7 +676,7 @@ def interactive_2d_viewer(grids_dir: str, stats_dir: str | None = None,
     cache = {"idx": trial_idx, "grid": grid}
 
     def update(_=None):
-        nonlocal current_trial_idx_pos, vmax_global, cache
+        nonlocal current_trial_idx_pos, cache
 
         new_trial_pos = int(round(slider_trial.val))
         if new_trial_pos == current_trial_idx_pos:
@@ -671,10 +691,6 @@ def interactive_2d_viewer(grids_dir: str, stats_dir: str | None = None,
             path = os.path.join(grids_dir, f"trial_{trial_idx:06d}.npy")
             grid = np.load(path)
             cache = {"idx": trial_idx, "grid": grid}
-            vmax_global = max(int(grid.max()), 4)
-            im.set_clim(vmin=0, vmax=vmax_global)
-            cbar.set_ticks(range(0, vmax_global + 1))
-            cbar.update_normal(im)
 
         im.set_data(grid)
 
@@ -724,12 +740,11 @@ def interactive_2d_viewer(grids_dir: str, stats_dir: str | None = None,
 
     def _save_patch(patch, trial_idx, x, y):
         """Render and save a local patch to disk with grain-count labels."""
-        vmax = max(int(patch.max()), 4)
         save_name = f"patch_trial_{trial_idx:06d}_x{x}_y{y}.png"
         save_path = os.path.join(local_patches_dir, save_name)
 
         fig_p, ax_p = plt.subplots(figsize=(3.5, 3.5))
-        ax_p.imshow(patch, cmap=SAND_CMAP_FULL, vmin=0, vmax=vmax,
+        ax_p.imshow(patch, cmap=SAND_CMAP, norm=SAND_NORM,
                     interpolation="nearest", origin="upper")
         ax_p.set_title(f"Trial {trial_idx}  centre=({x},{y})  "
                        f"{patch.shape[0]}×{patch.shape[1]}",
@@ -772,8 +787,6 @@ def interactive_2d_viewer(grids_dir: str, stats_dir: str | None = None,
         padded[py0:py1, px0:px1] = sub
 
         im_inset.set_data(padded)
-        vmax_local = max(int(sub.max()), 4)
-        im_inset.set_clim(vmin=0, vmax=vmax_local)
         fig.canvas.draw_idle()
 
     def on_click(event):
@@ -865,7 +878,6 @@ def interactive_3d_viewer(grids_dir: str, stats_dir: str | None = None,
     path0 = os.path.join(grids_dir, f"trial_{trial_indices[0]:06d}.npy")
     sample_grid = np.load(path0)
     n = sample_grid.shape[0]
-    vmax_global = max(int(sample_grid.max()), 6)
 
     if initial_z is None:
         initial_z = n // 2
@@ -876,17 +888,15 @@ def interactive_3d_viewer(grids_dir: str, stats_dir: str | None = None,
     current_z = max(0, min(initial_z, n - 1))
 
     # --- Build the figure ---
-    fig, ax_img = plt.subplots(figsize=(8, 9))
-    plt.subplots_adjust(bottom=0.22, left=0.12, right=0.95)
+    fig, ax_img = plt.subplots(figsize=(8, 9.5))
+    plt.subplots_adjust(bottom=0.22, left=0.10, right=0.88)
 
     # Initial display
     trial_idx = trial_indices[current_trial_idx_pos]
     path = os.path.join(grids_dir, f"trial_{trial_idx:06d}.npy")
     grid = np.load(path)
-    vmax_global = max(int(grid.max()), 6)
 
-    im = ax_img.imshow(grid[:, :, current_z], cmap=SAND_CMAP_FULL,
-                       vmin=0, vmax=vmax_global,
+    im = ax_img.imshow(grid[:, :, current_z], cmap=SAND_CMAP, norm=SAND_NORM,
                        interpolation="nearest", origin="upper")
 
     meta = metadata_map.get(trial_idx, {})
@@ -897,13 +907,15 @@ def interactive_3d_viewer(grids_dir: str, stats_dir: str | None = None,
     ax_img.set_xlabel("x")
     ax_img.set_ylabel("y")
 
-    cbar = plt.colorbar(im, ax=ax_img, shrink=0.82,
-                        ticks=range(0, vmax_global + 1))
-    cbar.set_label("Grains")
+    cbar_ax = fig.add_axes([0.90, 0.30, 0.03, 0.55])
+    cbar = fig.colorbar(im, cax=cbar_ax,
+                        ticks=range(len(_SAND_COLORS)))
+    cbar.set_label("Grains", fontsize=10)
+    cbar.ax.tick_params(labelsize=9)
 
     # --- Slider axes ---
-    ax_slider_trial = plt.axes([0.15, 0.10, 0.75, 0.03])
-    ax_slider_z = plt.axes([0.15, 0.05, 0.75, 0.03])
+    ax_slider_trial = plt.axes([0.15, 0.10, 0.73, 0.03])
+    ax_slider_z = plt.axes([0.15, 0.05, 0.73, 0.03])
 
     slider_trial = Slider(
         ax=ax_slider_trial,
@@ -929,7 +941,7 @@ def interactive_3d_viewer(grids_dir: str, stats_dir: str | None = None,
     cache = {"idx": trial_idx, "grid": grid}
 
     def update(_=None):
-        nonlocal current_trial_idx_pos, current_z, vmax_global, cache
+        nonlocal current_trial_idx_pos, current_z, cache
 
         new_trial_pos = int(round(slider_trial.val))
         new_z = int(round(slider_z.val))
@@ -952,10 +964,6 @@ def interactive_3d_viewer(grids_dir: str, stats_dir: str | None = None,
             path = os.path.join(grids_dir, f"trial_{trial_idx:06d}.npy")
             grid = np.load(path)
             cache = {"idx": trial_idx, "grid": grid}
-            vmax_global = max(int(grid.max()), 6)
-            im.set_clim(vmin=0, vmax=vmax_global)
-            cbar.set_ticks(range(0, vmax_global + 1))
-            cbar.update_normal(im)
 
         im.set_data(grid[:, :, current_z])
 

@@ -20,10 +20,46 @@ Usage:
     python main.py --view3d --trial 42 --z 50
 """
 
-import argparse
-import json
 import os
 import sys
+import shutil
+import time
+import glob as _glob
+
+# ---- Force fresh imports of local modules ----
+# This project lives on OneDrive, where Python's .pyc bytecode-cache check
+# (source mtime in seconds + file size) is unreliable: a quick edit saved
+# within the same second with the same byte count (e.g. 301 -> 200) leaves
+# the mtime/size unchanged, so Python silently reuses the stale .pyc and
+# ignores your edits to config.py and other local modules.
+# Clear the cache before any local import and stop writing new .pyc files,
+# so source changes always take effect. Retries handle transient OneDrive
+# sync locks on the .pyc files.
+def _clear_pycache():
+    base = os.path.dirname(os.path.abspath(__file__))
+    pyc_dir = os.path.join(base, "__pycache__")
+    for attempt in range(3):
+        if not os.path.isdir(pyc_dir):
+            return
+        # Remove individual .pyc files (best effort) then the directory.
+        for pyc in _glob.glob(os.path.join(pyc_dir, "*.pyc")):
+            try:
+                os.remove(pyc)
+            except OSError:
+                pass
+        try:
+            shutil.rmtree(pyc_dir, ignore_errors=True)
+        except OSError:
+            pass
+        if not os.path.isdir(pyc_dir):
+            return
+        time.sleep(0.05)
+
+_clear_pycache()
+sys.dont_write_bytecode = True
+
+import argparse
+import json
 
 import config
 from config import ensure_dirs
@@ -52,6 +88,8 @@ def run_2d(args):
         initial_grains=config.INITIAL_GRAINS_2D,
         base_seed=seed,
         save_interval=config.SAVE_INTERVAL,
+        num_perturb=config.NUM_PERTURB_SITES,
+        perturb_amount=config.PERTURB_AMOUNT,
     )
 
     print(f"\n2D experiment complete. Results in {config.OUTPUT_2D_DIR}")
@@ -80,6 +118,8 @@ def run_3d(args):
         initial_grains=config.INITIAL_GRAINS_3D,
         base_seed=seed,
         save_interval=config.SAVE_INTERVAL,
+        num_perturb=config.NUM_PERTURB_SITES,
+        perturb_amount=config.PERTURB_AMOUNT,
     )
 
     print(f"\n3D experiment complete. Results in {config.OUTPUT_3D_DIR}")

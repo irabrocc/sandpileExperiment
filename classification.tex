@@ -3,12 +3,16 @@
 
 \begin{document}
 \pagestyle{plain}
-\setcounter{chapter}{0}
+\setcounter{chapter}{1}
 
-\chapter{Directional Patterns}
-\label{chap:chapter1}
+\chapter{Classification of Directional Patterns}
+\label{chap:classification}
 
 After stabilizing 3000 trials of $301\times 301$ sandpile grids (each with background 3, plus 3 extra grains at random sites), we examine the pattern formed by cells whose height differs from 3. Far from the center, along a fixed rational direction $(n,m)$, a periodic height pattern emerges. We classify these patterns for all directions with $0 \le n,m \le 7$.
+
+\section{General Description of Directional Patterns}
+
+When one examines a stabilised grid far from the centre, the set of sites whose height differs from the background~$3$ forms a collection of lines. Each line extends outward in a fixed direction and is composed of a minimal periodic unit of coloured cells that repeats many times along that direction, giving every observed direction its own characteristic stripe. All observed directions are rational---that is, the slope of every line is a rational number; no line with an irrational slope appeared in any of the $10\,000$ trials.
 
 \section{Classification Table for $(n,m)$, $0 \le n,m \le 7$}
 
@@ -47,23 +51,33 @@ The seven observed directions are:
 \[
 (0,1),\;(1,0),\;(1,1),\;(1,2),\;(1,3),\;(2,1),\;(3,1).
 \]
-Note that $(n,m)$ and $(m,n)$ yield distinct patterns in general (e.g., $(1,2)$ vs.\ $(2,1)$ are different), and the negative directions $(-n,m)$, $(n,-m)$, $(-n,-m)$ produce the same patterns by symmetry. You can check the folder \texttt{images/} for the original images. 
+Note that $(n,m)$ and $(m,n)$ yield distinct patterns in general (e.g., $(1,2)$ vs.\ $(2,1)$ are different), and the negative directions $(-n,m)$, $(n,-m)$, $(-n,-m)$ produce the same patterns by symmetry. You can check the folder \texttt{images/} for the original images.
 
-\section{Observed Regularities}
+\section{Enlarged Classification Table for $(n,m)$, $0 \le n,m \le 3$}
 
-Beyond the classification, several quantitative regularities were noted across all trials.
+Table~\ref{tab:direction-grid-small} shows the same classification restricted to $0 \le n,m \le 3$. Because the table is smaller, each image is displayed at a larger size so the periodic structure of every pattern is easier to inspect. The mapping from $(n,m)$ to its reduced coprime direction is the same as in Table~\ref{tab:direction-grid}; entries that do not correspond to any observed primitive direction are marked ``not found.''
 
-\subsection{Internal Color Periodicity}
+\begin{table}[H]
+\centering
+\caption{Directional pattern classification for $0 \le n,m \le 3$ (enlarged). Rows index $n$, columns index $m$.}
+\label{tab:direction-grid-small}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.8}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+$n \downarrow \, / \, m \to$ & $0$ & $1$ & $2$ & $3$ \\
+\hline
+$0$ & --- & \includegraphics[width=2.6cm]{0_1} & \includegraphics[width=2.6cm]{0_1} & \includegraphics[width=2.6cm]{0_1} \\
+\hline
+$1$ & \includegraphics[width=2.6cm]{1_0} & \includegraphics[width=2.6cm]{1_1} & \includegraphics[width=2.6cm]{1_2} & \includegraphics[width=2.6cm]{1_3} \\
+\hline
+$2$ & \includegraphics[width=2.6cm]{1_0} & \includegraphics[width=2.6cm]{2_1} & \includegraphics[width=2.6cm]{1_1} & not found \\
+\hline
+$3$ & \includegraphics[width=2.6cm]{1_0} & \includegraphics[width=2.6cm]{3_1} & not found & \includegraphics[width=2.6cm]{1_1} \\
+\hline
+\end{tabular}
+\end{table}
 
-Along any directional line, the color pattern of heights repeats periodically without variation. For instance, a line with  $(2, 1)$ always follows the sequence (brown, white, brown) from left to right.
-
-\subsection{Frequency of Occurrence}
-
-Lines whose slope is close to horizontal or vertical appear less frequently across trials. The vast majority of observed lines are horizontal, vertical, or at a $45^\circ$ angle (slope~$\pm1$). Lines with slopes $1/2$, $1/3$, $2$, or~$3$ are comparatively rare.
-
-\subsection{Vector Sum at Intersections}
-
-When multiple directional lines meet at a single intersection point, the sum of their unit direction vectors equals zero. This suggests a form of local conservation governing the pattern geometry.
-
+All seven primitive directions already appear within this $0\le n,m\le 3$ range: $(0,1)$, $(1,0)$, $(1,1)$, $(1,2)$, $(1,3)$, $(2,1)$, and $(3,1)$. The only non-primitive pairs in this range are $(0,2)=(0,1)$, $(0,3)=(0,1)$, $(2,0)=(1,0)$, $(2,2)=(1,1)$, $(3,0)=(1,0)$, and $(3,3)=(1,1)$, each inheriting the image of its reduced direction. The two remaining pairs, $(2,3)$ and $(3,2)$, are coprime but were not observed in any trial.
 
 \end{document}
