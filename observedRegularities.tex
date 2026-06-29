@@ -8,11 +8,11 @@
 \label{chap:observed-regularities}
 
 
-Beyond the classification, several quantitative regularities were noted across all trials.
+Beyond the classification, several quantitative regularities emerged across all trials.
 
 \section{Internal Color Periodicity}
 
-Along any directional line, the color pattern of heights repeats periodically without variation. For instance, a line in direction $(2, 1)$ always follows the sequence (Blue, White, Blue) from left to right.
+Along any directional line, the height pattern repeats periodically without variation. For example, a line in direction $(2,1)$ always follows the sequence (Blue, White, Blue) from left to right.
 
 \begin{figure}[H]
 \centering
@@ -22,54 +22,107 @@ Along any directional line, the color pattern of heights repeats periodically wi
 
 \section{Frequency of Occurrence}
 
-Lines whose slope is close to horizontal or vertical appear less frequently across trials. The vast majority of observed lines are horizontal, vertical, or at a $45^\circ$ angle (slope~$\pm1$). Lines with slopes $1/2$, $1/3$, $2$, or~$3$ are comparatively rare.
+Lines with near-horizontal or near-vertical slopes appear less often. Most observed lines are horizontal, vertical, or at $45^\circ$ (slope $\pm1$). Lines with slopes $1/2$, $1/3$, $2$, or $3$ are rare.
 
-\section{Vector Sum at Intersections}
+\section{Vector Sum Rule}
 
-This is the most interesting observation. When several directional lines meet at one intersection point, the sum of their direction vectors equals zero. This suggests a form of local conservation governing the pattern geometry.
+When several directional lines meet at a point, their direction vectors sum to zero. This vector sum rule governs the pattern geometry.
 
-Starting from the two basic directions $(1, 0)$ and $(0, 1)$, the local conservation law produces the remaining observed directions $(1, 1)$, $(2, 1)$, $(1, 2)$, $(3, 1)$, $(1, 3)$. The following examples illustrate how each new direction arises from an intersection of two earlier ones.
+Starting from the two basic directions $(1,0)$ and $(0,1)$, the vector sum rule generates the remaining observed directions $(1,1)$, $(2,1)$, $(1,2)$, $(3,1)$, $(1,3)$. The examples below show how each new direction arises from an intersection of two earlier ones.
 
-The intersection of $(1, 0)$ and $(0, 1)$ produces $(1, 1)$.
+The intersection of $(1,0)$ and $(0,1)$ yields $(1,1)$.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=7cm]{first_intersection}
-\caption{Intersection of $(1,0)$ and $(0,1)$, producing $(1,1)$.}
+\caption{Intersection of $(1,0)$ and $(0,1)$, yielding $(1,1)$.}
 \end{figure}
 
-The intersection of $(1, 1)$ and $(0, 1)$ produces $(1, 2)$.
+The intersection of $(1,1)$ and $(0,1)$ yields $(1,2)$.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=7cm]{second_intersection}
-\caption{Intersection of $(1,1)$ and $(0,1)$, producing $(1,2)$.}
+\caption{Intersection of $(1,1)$ and $(0,1)$, yielding $(1,2)$.}
 \end{figure}
 
-The intersection of $(1, 2)$ and $(0, 1)$ produces $(1, 3)$.
+The intersection of $(1,2)$ and $(0,1)$ yields $(1,3)$.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=7cm]{third_intersection}
-\caption{Intersection of $(1,2)$ and $(0,1)$, producing $(1,3)$.}
+\caption{Intersection of $(1,2)$ and $(0,1)$, yielding $(1,3)$.}
 \end{figure}
 
-An intersection may also involve four directional lines. For example, $(0, 1)$, $(2, 1)$, $(1, 1)$ and $(1, 1)$ meet at one point, since $(0, 1) + (2, 1) = (1, 1) + (1, 1)$.
+Four lines may also meet at one point. For example, $(0,1)$, $(2,1)$, $(1,1)$, and $(1,1)$ meet at a point, since $(0,1)+(2,1)=(1,1)+(1,1)$.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=7cm]{intersection_of_four}
-\caption{Intersection of four lines $(0,1)$, $(2,1)$, $(1,1)$, $(1,1)$, whose direction vectors balance pairwise.}
+\caption{Four-line intersection: $(0,1)$, $(2,1)$, $(1,1)$, $(1,1)$. The direction vectors balance pairwise.}
 \end{figure}
 
-\subsection{Pattern Explanation via the Local Conservation Law}
+\subsection{Explaining the Observed Patterns}
 
-The zero-sum rule at intersections accounts for several of the observations above.
+The zero-sum rule at intersections explains several earlier observations.
 
-\paragraph{No irrational slopes.} Every directional line is born at an intersection of two existing lines, and its direction vector is the integer sum (or difference) of the two parent vectors. Starting from the integer vectors $(1,0)$ and $(0,1)$, repeated addition can only ever produce integer vectors $(n,m)$. The slope $m/n$ of any such line is therefore a rational number. An irrational slope would require an irrational component in the direction vector, which integer arithmetic can never generate. This explains why no line with an irrational slope appeared in any of the $10\,000$ trials.
+\paragraph{No irrational slopes.} Every directional line is born at an intersection of two existing lines, so its direction vector is an integer sum (or difference) of the two parent vectors. Starting from $(1,0)$ and $(0,1)$, repeated addition can only produce integer vectors $(n,m)$. Hence every slope $m/n$ is rational. An irrational slope would require an irrational vector component, which integer arithmetic can never produce. This explains why no line with an irrational slope appeared in any of the $10\,000$ trials.
 
+\paragraph{Rarity of near-horizontal or near-vertical lines.} A line with slope $1/n$ (or $n$) for large $n$ requires building a direction vector with very different components. Under the zero-sum rule, this means adding the basic vertical direction repeatedly to a nearly horizontal line, which demands several successive intersections along the same path. Each extra intersection is rare, so directions such as $(1,3)$ or $(3,1)$ appear far less often than $(1,1)$, which results from a single intersection of the two most common lines, $(1,0)$ and $(0,1)$. By contrast, the horizontal, vertical, and $45^\circ$ directions arise from the simplest sums and appear almost everywhere.
 
-\paragraph{Rarity of nearly horizontal or vertical lines.} A line with slope $1/n$ (or $n$) for large $n$ requires building up a direction vector whose components are very different in size. Under the zero-sum rule this means adding the basic vertical direction repeatedly to a line that is already nearly horizontal, which demands several successive intersections along the same path. Each extra intersection is a rare event, so directions such as $(1,3)$ or $(3,1)$ turn up far less often than $(1,1)$, which is produced by a single intersection of the two most common lines, $(1,0)$ and $(0,1)$. In contrast, the horizontal, vertical, and $45^\circ$ directions are produced almost everywhere, since they correspond to the simplest possible sums.
+\section{Squared-Norm Rule}
+
+For each directional line, let $\mathcal{D}$ be the total height difference from the background over one full period, and let $v=(n,m)$ with $\gcd(n,m)=1$ be its direction vector. Across all trials and all observed directions,
+
+\begin{equation}
+    \mathcal{D} = |v|^2 = n^2 + m^2 .
+\end{equation}
+
+We verify this for four representative directions.
+
+For $v=(0,1)$, the repeating unit is a single cell of height $2$, so $\mathcal{D}=3-2=1=0^2+1^2$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{0_1}
+\caption{Directional pattern $(0,1)$. Repeating unit: one cell of height $2$, $\mathcal{D}=1$.}
+\end{figure}
+
+For $v=(1,1)$, the repeating unit is a single cell of height $1$, so $\mathcal{D}=3-1=2=1^2+1^2$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{1_1}
+\caption{Directional pattern $(1,1)$. Repeating unit: one cell of height $1$, $\mathcal{D}=2$.}
+\end{figure}
+
+For $v=(2,1)$, the repeating unit consists of three cells of heights $2,0,2$, so
+\[
+\mathcal{D} = (3-2)+(3-0)+(3-2) = 5 = 2^2+1^2.
+\]
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{2_1}
+\caption{Directional pattern $(2,1)$. Repeating unit: heights $2,0,2$, $\mathcal{D}=5$.}
+\end{figure}
+
+For $v=(3,1)$, the repeating unit consists of seven cells of heights $2,2,0,3,0,2,2$, so
+\[
+\mathcal{D} = (3-2)+(3-2)+(3-0)+(3-3)+(3-0)+(3-2)+(3-2) = 10 = 3^2+1^2.
+\]
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=7cm]{3_1}
+\caption{Directional pattern $(3,1)$. Repeating unit: heights $2,2,0,3,0,2,2$, $\mathcal{D}=10$.}
+\end{figure}
+
+\subsection{Trivial Case}
+
+Each background cell can be viewed as a directional line with vector $(0,0)$, its repeating unit being the cell itself. The difference from the background is $\mathcal{D}=3-3=0=0^2+0^2$, which also satisfies the rule.
+
+\subsection{Question: Why does}
 
 
 \end{document}
