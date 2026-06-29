@@ -17,7 +17,7 @@ NUM_PERTURB_SITES = 3   # number of random sites to perturb per trial
 PERTURB_AMOUNT = 1      # grains added to each perturbed site
 
 # ---- Experiment ----
-NUM_TRIALS_2D = 10000
+NUM_TRIALS_2D = 3000
 NUM_TRIALS_3D = 2000
 SAVE_INTERVAL = 100     # save intermediate results every N trials
 
