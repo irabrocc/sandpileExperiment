@@ -80,12 +80,16 @@ statisticsTask/
 ├── sandpile_3d.py         # 3D sandpile engine
 ├── experiment_2d.py       # 2D perturbation experiment runner
 ├── experiment_3d.py       # 3D perturbation experiment runner
-├── continuous_drive.py    # Continuous-drive SOC experiments + power-law fit
-├── visualize.py           # Plotting utilities (2D, 3D, power-law)
+├── visualize.py           # Plotting utilities
 ├── analyze.py             # Statistical & pattern analysis
 ├── main.py                # CLI entry point
 ├── test_sandpile_2d.py    # Unit tests
-├── notes.md               # Observations log
+├── main.tex               # Report: main document
+├── basicSetting.tex       # Report: experimental setup
+├── classification.tex     # Report: pattern classification
+├── observedRegularities.tex # Report: observed regularities
+├── observed_patterns.md   # Raw observation notes
+├── images/                # Figures for the report
 └── outputs/
     ├── 2d/
     │   ├── grids/          # .npy final grids
