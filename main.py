@@ -89,6 +89,7 @@ def run_2d(args):
         base_seed=seed,
         num_perturb=config.NUM_PERTURB_SITES,
         perturb_amount=config.PERTURB_AMOUNT,
+        num_workers=args.workers,
     )
 
     print(f"\n2D experiment complete. Results in {config.OUTPUT_2D_DIR}")
@@ -118,6 +119,7 @@ def run_3d(args):
         base_seed=seed,
         num_perturb=config.NUM_PERTURB_SITES,
         perturb_amount=config.PERTURB_AMOUNT,
+        num_workers=args.workers,
     )
 
     print(f"\n3D experiment complete. Results in {config.OUTPUT_3D_DIR}")
@@ -258,6 +260,8 @@ Examples:
     parser.add_argument("--n", type=int, help="3D cube size")
     parser.add_argument("--trials", type=int, help="Number of trials (perturbation mode)")
     parser.add_argument("--seed", type=int, help="Base random seed")
+    parser.add_argument("--workers", type=int, default=None,
+                        help="Number of parallel worker processes (default: all CPUs)")
 
     args = parser.parse_args()
 

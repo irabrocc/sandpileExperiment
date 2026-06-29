@@ -12,6 +12,7 @@ For each trial:
 import json
 import os
 import time
+import multiprocessing as mp
 import numpy as np
 from tqdm import tqdm
 
@@ -94,6 +95,37 @@ def run_single_trial(n: int, seed: int | None = None,
 
 
 # ---------------------------------------------------------------------------
+# Parallel worker (module-level so it is picklable by spawn on Windows)
+# ---------------------------------------------------------------------------
+
+def _run_and_save_trial(args) -> dict:
+    """Run one 3D trial, save its grid to disk, and return metadata only.
+
+    Only scalar parameters are sent across the process boundary; the grid
+    array is written to disk inside the worker so it never travels through
+    IPC. ``trial_idx`` is echoed back so results can be re-ordered when
+    using ``imap_unordered``.
+    """
+    (n, trial_idx, seed, threshold, initial_grains,
+     num_perturb, perturb_amount, grids_dir) = args
+
+    result = run_single_trial(
+        n, seed=seed,
+        threshold=threshold,
+        initial_grains=initial_grains,
+        num_perturb=num_perturb,
+        perturb_amount=perturb_amount,
+    )
+
+    grid_path = os.path.join(grids_dir, f"trial_{trial_idx:06d}.npy")
+    np.save(grid_path, result["grid"])
+
+    meta = {k: v for k, v in result.items() if k != "grid"}
+    meta["trial_idx"] = trial_idx
+    return meta
+
+
+# ---------------------------------------------------------------------------
 # Batch run
 # ---------------------------------------------------------------------------
 
@@ -103,8 +135,15 @@ def run_batch(n: int, num_trials: int,
               initial_grains: int | None = None,
               base_seed: int | None = None,
               num_perturb: int | None = None,
-              perturb_amount: int | None = None) -> list[dict]:
-    """Run *num_trials* 3D sandpile experiments.
+              perturb_amount: int | None = None,
+              num_workers: int | None = None) -> list[dict]:
+    """Run *num_trials* 3D sandpile experiments in parallel.
+
+    Trials are independent, so they are distributed across a pool of
+    worker processes. Each worker runs one trial, writes its grid to
+    ``grids/trial_XXXXXX.npy``, and returns only the small metadata dict.
+    The order of ``all_metadata.json`` matches the trial index regardless
+    of completion order.
 
     Any parameter left as ``None`` falls back to the value defined in
     :mod:`config`, which is the single source of truth. Pass explicit
@@ -119,10 +158,13 @@ def run_batch(n: int, num_trials: int,
     output_dir : str | None
         Directory to save grids and stats.
     threshold : int | None
-    initial_grains : int | None
-    base_seed : int | None
-    num_perturb : int | None
-    perturb_amount : int | None
+        initial_grains : int | None
+        base_seed : int | None
+        num_perturb : int | None
+        perturb_amount : int | None
+    num_workers : int | None
+        Number of worker processes. ``None`` (default) uses all CPUs;
+        ``1`` runs serially (useful for debugging).
 
     Returns
     -------
@@ -140,32 +182,37 @@ def run_batch(n: int, num_trials: int,
         num_perturb = config.NUM_PERTURB_SITES
     if perturb_amount is None:
         perturb_amount = config.PERTURB_AMOUNT
+    if num_workers is None:
+        num_workers = os.cpu_count() or 1
 
     grids_dir = os.path.join(output_dir, "grids")
     stats_dir = os.path.join(output_dir, "stats")
     os.makedirs(grids_dir, exist_ok=True)
     os.makedirs(stats_dir, exist_ok=True)
 
-    all_results = []
+    # Build the per-trial argument tuples (all scalars -> cheap to pickle).
+    args = [
+        (n, trial_idx, base_seed + trial_idx, threshold, initial_grains,
+         num_perturb, perturb_amount, grids_dir)
+        for trial_idx in range(num_trials)
+    ]
+
+    all_results: list[dict | None] = [None] * num_trials
 
     start_time = time.time()
 
-    for trial_idx in tqdm(range(num_trials), desc=f"3D n={n}"):
-        seed = base_seed + trial_idx
-        result = run_single_trial(
-            n, seed=seed,
-            threshold=threshold,
-            initial_grains=initial_grains,
-            num_perturb=num_perturb,
-            perturb_amount=perturb_amount,
-        )
+    if num_workers > 1:
+        desc = f"3D n={n} ({num_workers} workers)"
+        with mp.Pool(processes=num_workers) as pool:
+            for meta in tqdm(pool.imap_unordered(_run_and_save_trial, args),
+                             total=num_trials, desc=desc):
+                all_results[meta["trial_idx"]] = meta
+    else:
+        for a in tqdm(args, desc=f"3D n={n}"):
+            meta = _run_and_save_trial(a)
+            all_results[meta["trial_idx"]] = meta
 
-        # Save grid to disk
-        grid_path = os.path.join(grids_dir, f"trial_{trial_idx:06d}.npy")
-        np.save(grid_path, result["grid"])
-
-        meta = {k: v for k, v in result.items() if k != "grid"}
-        all_results.append(meta)
+    all_results = [m for m in all_results if m is not None]
 
     # Save raw metadata
     elapsed = time.time() - start_time
@@ -174,7 +221,8 @@ def run_batch(n: int, num_trials: int,
         json.dump(all_results, f, indent=2)
 
     print(f"\nDone. {num_trials} trials in {elapsed:.1f}s "
-          f"({num_trials / elapsed:.1f} trials/s)")
+          f"({num_trials / elapsed:.1f} trials/s) "
+          f"using {num_workers} worker(s)")
 
     return all_results
 
