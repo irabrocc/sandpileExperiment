@@ -16,10 +16,6 @@
     "median": 90601.0,
     "std": 0.0
   },
-  "max_grains_stats": {
-    "mean": 3.0,
-    "max": 3
-  },
   "avalanche_sizes": [
     2137591,
     5280337,
@@ -10035,10 +10031,10 @@
       "std": 0.0016504062702990552
     },
     "symmetry_correlations": {
-      "horizontal_reflection": 0.35961465011598037,
-      "vertical_reflection": 0.34565475893280445,
-      "rotation_180": 0.0828964338578965,
-      "rotation_90": 0.06662164301641807
+      "horizontal_reflection": 0.3596146501159783,
+      "vertical_reflection": 0.34565475893280223,
+      "rotation_180": 0.08289643385789525,
+      "rotation_90": 0.06662164301641794
     }
   }
 }

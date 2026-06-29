@@ -40,12 +40,11 @@ def compute_statistics(metadata: list[dict]) -> dict:
     """Compute summary statistics from trial metadata.
 
     Returns a dict with:
-        num_trials, topple_stats, distinct_stats, max_grains_stats,
+        num_trials, topple_stats, distinct_stats,
         avalanche_size_distribution, grain_distribution_aggregate
     """
     topples = np.array([m["topples"] for m in metadata])
     distincts = np.array([m["distinct"] for m in metadata])
-    max_grains = np.array([m["max_grains"] for m in metadata])
 
     # Aggregate grain distribution
     dist_agg = Counter()
@@ -70,10 +69,6 @@ def compute_statistics(metadata: list[dict]) -> dict:
             "mean": float(np.mean(distincts)),
             "median": float(np.median(distincts)),
             "std": float(np.std(distincts)),
-        },
-        "max_grains_stats": {
-            "mean": float(np.mean(max_grains)),
-            "max": int(np.max(max_grains)),
         },
         "avalanche_sizes": topples.tolist(),
         "grain_distribution_aggregate": dict(sorted(dist_agg.items())),

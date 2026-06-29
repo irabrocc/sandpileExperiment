@@ -8,7 +8,7 @@
 \chapter{Classification of Directional Patterns}
 \label{chap:classification}
 
-After stabilizing 3000 trials of $301\times 301$ sandpile grids (each with background 3, plus 3 extra grains at random sites), we examine the pattern formed by cells whose height differs from 3. Far from the center, along a fixed rational direction $(n,m)$, a periodic height pattern emerges. We classify these patterns for all directions with $0 \le n,m \le 7$.
+After stabilizing 10000 trials of $301\times 301$ sandpile grids (each with background 3, plus 3 extra grains at random sites), we examine the pattern formed by cells whose height differs from 3. Far from the center, along a fixed rational direction $(n,m)$, a periodic height pattern emerges. We classify these patterns for all directions with $0 \le n,m \le 7$.
 
 \section{General Description of Directional Patterns}
 
@@ -16,7 +16,7 @@ When one examines a stabilised grid far from the centre, the set of sites whose 
 
 \section{Classification Table for $(n,m)$, $0 \le n,m \le 7$}
 
-Table~\ref{tab:direction-grid} shows the directional pattern for each pair $(n,m)$. Only seven distinct primitive (coprime) directions were observed across all 3000 trials. When a pair $(n,m)$ reduces by $\gcd(n,m)$ to one of these seven primitive directions, the corresponding image is shown; otherwise the entry reads ``not found.''
+Table~\ref{tab:direction-grid} shows the directional pattern for each pair $(n,m)$. Only seven distinct primitive (coprime) directions were observed across all 10000 trials. When a pair $(n,m)$ reduces by $\gcd(n,m)$ to one of these seven primitive directions, the corresponding image is shown; otherwise the entry reads ``not found.''
 
 \begin{table}[H]
 \centering
@@ -51,7 +51,9 @@ The seven observed directions are:
 \[
 (0,1),\;(1,0),\;(1,1),\;(1,2),\;(1,3),\;(2,1),\;(3,1).
 \]
-Note that $(n,m)$ and $(m,n)$ yield distinct patterns in general (e.g., $(1,2)$ vs.\ $(2,1)$ are different), and the negative directions $(-n,m)$, $(n,-m)$, $(-n,-m)$ produce the same patterns by symmetry. You can check the folder \texttt{images/} for the original images.
+Note that $(n,m)$ and $(m,n)$ yield symmetric patterns in general (e.g., $(1,2)$ vs.\ $(2,1)$ are symmetric). You can check the folder \texttt{images/} for the original images.
+
+\newpage 
 
 \section{Enlarged Classification Table for $(n,m)$, $0 \le n,m \le 3$}
 
@@ -78,6 +80,6 @@ $3$ & \includegraphics[width=2.6cm]{1_0} & \includegraphics[width=2.6cm]{3_1} & 
 \end{tabular}
 \end{table}
 
-All seven primitive directions already appear within this $0\le n,m\le 3$ range: $(0,1)$, $(1,0)$, $(1,1)$, $(1,2)$, $(1,3)$, $(2,1)$, and $(3,1)$. The only non-primitive pairs in this range are $(0,2)=(0,1)$, $(0,3)=(0,1)$, $(2,0)=(1,0)$, $(2,2)=(1,1)$, $(3,0)=(1,0)$, and $(3,3)=(1,1)$, each inheriting the image of its reduced direction. The two remaining pairs, $(2,3)$ and $(3,2)$, are coprime but were not observed in any trial.
+All seven primitive directions already appear within this $0\le n,m\le 3$ range: $(0,1)$, $(1,0)$, $(1,1)$, $(1,2)$, $(1,3)$, $(2,1)$, and $(3,1)$. The two remaining pairs, $(2,3)$ and $(3,2)$, are coprime but were not observed in any trial.
 
 \end{document}

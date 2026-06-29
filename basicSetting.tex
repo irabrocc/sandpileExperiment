@@ -58,16 +58,21 @@ After the batch completes, the same driver produces the classification study of 
 \section{Visualisation}
 \label{sec:visualisation}
 
-A separate module (\texttt{visualize.py}, built on Matplotlib) turns the saved grids into figures. Each grain count is mapped to a fixed colour (white for $0$, moccasin for $1$, sandy brown for $2$, peru for $3$, and a warm colour for higher counts), so that the height pattern is read directly as a coloured image. The module provides:
+The module \texttt{visualize.py} (built on Matplotlib) provides interactive viewers for exploring the saved grids. Each grain count is mapped to a fixed colour via a discrete 7-colour colormap (off-white~$\rightarrow$~yellow~$\rightarrow$~blue~$\rightarrow$~green~$\rightarrow$~orange~$\rightarrow$~brown~$\rightarrow$~red), so that the height pattern is read directly as a coloured image.
 
-\begin{itemize}
-    \item single-grid heatmaps and side-by-side comparisons of several trials;
-    \item an avalanche-size histogram over all trials;
-    \item a toppling-frequency map, obtained by averaging many stabilised grids against the background, which reveals the directions that recur across trials;
-    \item for 3D, a set of $z$-slices and a slice montage, since a 3D grid is viewed one 2D layer at a time;
-    \item interactive viewers with trial and slice sliders, so the user can browse the thousands of saved grids by hand and look for recurring structures.
-\end{itemize}
+\subsection{2D Interactive Viewer (\texttt{-{}-view2d})}
 
-These tools were used both to spot the regularities reported in Chapter~\ref{chap:classification} and to produce the figures in this report.
+The 2D viewer opens a Matplotlib window with a trial slider to browse grid snapshots. Red $\bigstar$ markers indicate the three perturbation sites for each trial. The title bar displays the trial index, total topple count, and distinct-toppled-site count. Keyboard shortcuts $\leftarrow$~/~$\rightarrow$ (or A~/~D) navigate between trials.
+
+\subsubsection{Patch Inspection Feature}
+The 2D viewer includes a local inspection tool: hovering the mouse over any grid cell shows a live \textbf{$18\times18$ preview inset} (top-left corner of the window) displaying the local neighbourhood around the cursor. Left-clicking or pressing the \texttt{S} key \textbf{saves} the patch as an annotated PNG image. In the saved image every cell is labelled with its exact grain count (black text for $\le 2$ grains, white for $\ge 3$), making it possible to read precise height values without squinting at the colour map. Saved patches are written to \texttt{outputs/2d/local\_patches/} with filenames of the form \texttt{patch\_trial\_NNNNNN\_xX\_yY.png}.
+
+This feature is the primary tool for examining local periodic colour structures along directional lines (see Chapter~\ref{chap:classification}), inspecting grain-count patterns at intersection points, and capturing exact configurations for inclusion in this report.
+
+\subsection{3D Interactive Viewer (\texttt{-{}-view3d})}
+
+The 3D viewer provides two orthogonal sliders---trial index and $z$-slice depth---for browsing 3D grids one 2D layer at a time. The grid is cached per trial, so switching $z$ within the same trial is instantaneous. Keyboard shortcuts: $\leftarrow$~/~$\rightarrow$ navigate $z$-slices, $\uparrow$~/~$\downarrow$ (or W~/~S) navigate trials.
+
+These interactive tools were used both to spot the regularities reported in Chapter~\ref{chap:classification} and to produce the figures in this report.
 
 \end{document}

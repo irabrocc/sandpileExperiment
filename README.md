@@ -18,8 +18,8 @@ pip install numpy matplotlib tqdm pytest
 python main.py --mode 2d --N 200 --trials 200
 python main.py --mode 3d --n 30 --trials 200
 python main.py --all
-python main.py --analyze 2d
-python main.py --analyze 3d
+python main.py --analyze 2d      # stats + pattern analysis (JSON)
+python main.py --analyze 3d      # stats + pattern analysis (JSON)
 
 # ---- Interactive viewers ----
 python main.py --view2d              # browse 2D grid snapshots
@@ -37,15 +37,34 @@ Interactive matplotlib windows for browsing sandpile grid snapshots in real time
 
 ### 2D Viewer (`--view2d`)
 
-| Control      | Action                           |
-|---           |---                               |
-| Trial slider | Switch between trials (0 to N−1) |
-| `←` / `A`    | Previous trial                   |
-| `→` / `D`    | Next trial                       |
+| Control        | Action                           |
+|---             |---                               |
+| Trial slider   | Switch between trials (0 to N−1) |
+| `←` / `A`      | Previous trial                   |
+| `→` / `D`      | Next trial                       |
+| Mouse hover    | Live 18×18 patch preview         |
+| Left-click / S | Save 18×18 patch as annotated PNG |
 
 - Red ★ markers show the 3 perturbation sites for each trial.
 - Title bar displays trial index, total topple count, and distinct site count.
-- Colorbar auto-adjusts to the grain range.
+- Colorbar shows the fixed 7-colour grain-count map.
+
+#### Patch Feature (18×18 Local Inspection)
+
+Hover the mouse over any grid cell to see a live **18×18 preview inset**
+(top-left corner of the window), showing the local neighbourhood around the
+cursor.  Left-click or press `S` to **save** the patch as an annotated PNG:
+
+- Every cell is labelled with its exact grain count (black text for ≤2,
+  white for ≥3).
+- Files are named `patch_trial_NNNNNN_xX_yY.png` and saved to
+  `outputs/2d/local_patches/`.
+- If no mouse position is available, the `S` key falls back to the grid
+  centre.
+
+This is the primary tool for examining local periodic colour structures
+along directional lines, inspecting grain-count patterns at intersection
+points, and capturing precise configurations for inclusion in the report.
 
 ### 3D Viewer (`--view3d`)
 
@@ -80,7 +99,7 @@ statisticsTask/
 ├── sandpile_3d.py         # 3D sandpile engine
 ├── experiment_2d.py       # 2D perturbation experiment runner
 ├── experiment_3d.py       # 3D perturbation experiment runner
-├── visualize.py           # Plotting utilities
+├── visualize.py           # Interactive viewers + colour map
 ├── analyze.py             # Statistical & pattern analysis
 ├── main.py                # CLI entry point
 ├── test_sandpile_2d.py    # Unit tests
@@ -93,6 +112,7 @@ statisticsTask/
 └── outputs/
     ├── 2d/
     │   ├── grids/          # .npy final grids
+    │   ├── local_patches/  # saved 18×18 patches (PNG)
     │   ├── images/         # .png visualizations
     │   └── stats/          # .json statistics
     └── 3d/

@@ -8,10 +8,10 @@ Usage:
     python main.py --mode 2d [--N 200] [--trials 1000] [--seed 42]
     python main.py --mode 3d [--n 30]  [--trials 1000] [--seed 42]
     python main.py --all
-    python main.py --analyze 2d
-    python main.py --analyze 3d
+    python main.py --analyze 2d      # stats + pattern analysis (JSON)
+    python main.py --analyze 3d      # stats + pattern analysis (JSON)
 
-    # Interactive 2D viewer
+    # Interactive 2D viewer (with 18×18 patch inspection)
     python main.py --view2d
     python main.py --view2d --trial 100
 
@@ -87,7 +87,6 @@ def run_2d(args):
         threshold=config.TOPPLE_THRESHOLD_2D,
         initial_grains=config.INITIAL_GRAINS_2D,
         base_seed=seed,
-        save_interval=config.SAVE_INTERVAL,
         num_perturb=config.NUM_PERTURB_SITES,
         perturb_amount=config.PERTURB_AMOUNT,
     )
@@ -117,7 +116,6 @@ def run_3d(args):
         threshold=config.TOPPLE_THRESHOLD_3D,
         initial_grains=config.INITIAL_GRAINS_3D,
         base_seed=seed,
-        save_interval=config.SAVE_INTERVAL,
         num_perturb=config.NUM_PERTURB_SITES,
         perturb_amount=config.PERTURB_AMOUNT,
     )
@@ -126,53 +124,16 @@ def run_3d(args):
 
 
 def analyze_2d(args):
-    """Analyze 2D results and produce visualizations."""
+    """Analyze 2D results — compute statistics and patterns."""
     import numpy as np
     from analyze import (
         load_metadata, load_grid, compute_statistics,
         analyze_patterns_across_trials, detect_patterns, compute_symmetry,
     )
-    from visualize import (
-        plot_grid, plot_grid_comparison, plot_avalanche_size_histogram,
-        plot_toppling_frequency_map,
-    )
 
     metadata = load_metadata(config.STATS_2D_DIR)
     stats = compute_statistics(metadata)
     print(json.dumps(stats["topple_stats"], indent=2))
-
-    # Plot avalanche size histogram
-    plot_avalanche_size_histogram(
-        stats["avalanche_sizes"],
-        save_path=os.path.join(config.IMAGES_2D_DIR, "avalanche_histogram.png"),
-    )
-
-    # Plot toppling frequency map
-    plot_toppling_frequency_map(
-        config.GRIDS_2D_DIR, len(metadata),
-        save_path=os.path.join(config.IMAGES_2D_DIR, "toppling_frequency.png"),
-        max_to_load=500,
-        background=config.INITIAL_GRAINS_2D,
-    )
-
-    # Sample grid visualizations
-    sample_indices = [0, 1, 2, 5, 10, 20, 50, 100, 200]
-    sample_indices = [i for i in sample_indices if i < len(metadata)]
-    grids = []
-    titles = []
-    for idx in sample_indices:
-        try:
-            g = load_grid(config.GRIDS_2D_DIR, idx)
-            grids.append(g)
-            titles.append(f"Trial {idx} (topples={metadata[idx]['topples']})")
-        except FileNotFoundError:
-            pass
-
-    if grids:
-        plot_grid_comparison(
-            grids, titles,
-            save_path=os.path.join(config.IMAGES_2D_DIR, "sample_grids.png"),
-        )
 
     # Pattern analysis
     pat = analyze_patterns_across_trials(config.GRIDS_2D_DIR, metadata)
@@ -184,80 +145,22 @@ def analyze_2d(args):
     with open(stats_path, "w") as f:
         json.dump({**stats, "patterns": pat}, f, indent=2)
 
-    print(f"\n2D analysis complete. Visualizations in {config.IMAGES_2D_DIR}")
+    print(f"\n2D analysis complete. Stats saved to {config.STATS_2D_DIR}")
 
 
 def analyze_3d(args):
-    """Analyze 3D results and produce visualizations."""
+    """Analyze 3D results — compute statistics and patterns."""
     import numpy as np
     from analyze import (
         load_metadata, load_grid, compute_statistics,
         analyze_3d_grid, analyze_3d_patterns_across_trials,
-    )
-    from visualize import (
-        plot_avalanche_size_histogram, plot_3d_slices,
-        plot_3d_slice_montage, plot_3d_toppling_frequency_map,
-        plot_slice_changed_fraction_profile,
-        plot_3d_toppling_frequency_slices,
     )
 
     metadata = load_metadata(config.STATS_3D_DIR)
     stats = compute_statistics(metadata)
     print(json.dumps(stats["topple_stats"], indent=2))
 
-    # ---- Avalanche size histogram (same as 2D) ----
-    plot_avalanche_size_histogram(
-        stats["avalanche_sizes"],
-        save_path=os.path.join(config.IMAGES_3D_DIR, "avalanche_histogram.png"),
-    )
-
-    # ---- Toppling frequency map (middle z-slice) ----
-    plot_3d_toppling_frequency_map(
-        config.GRIDS_3D_DIR, len(metadata),
-        save_path=os.path.join(config.IMAGES_3D_DIR, "toppling_frequency.png"),
-        max_to_load=200,
-        background=config.INITIAL_GRAINS_3D,
-    )
-
-    # ---- Toppling frequency at multiple z-slices ----
-    plot_3d_toppling_frequency_slices(
-        config.GRIDS_3D_DIR, len(metadata),
-        save_path=os.path.join(config.IMAGES_3D_DIR, "toppling_frequency_slices.png"),
-        max_to_load=100,
-        background=config.INITIAL_GRAINS_3D,
-    )
-
-    # ---- Sample 3D slice visualizations ----
-    sample_indices = [0, 1, 2, 5, 10]
-    sample_indices = [i for i in sample_indices if i < len(metadata)]
-
-    for idx in sample_indices:
-        try:
-            g = load_grid(config.GRIDS_3D_DIR, idx)
-        except FileNotFoundError:
-            continue
-        plot_3d_slices(
-            g,
-            title=f"3D Trial {idx} (topples={metadata[idx]['topples']})",
-            save_path=os.path.join(config.IMAGES_3D_DIR, f"slices_trial_{idx:06d}.png"),
-        )
-
-    # ---- Slice montage comparison across trials ----
-    grids_3d = []
-    labels_3d = []
-    for idx in sample_indices:
-        try:
-            grids_3d.append(load_grid(config.GRIDS_3D_DIR, idx))
-            labels_3d.append(f"Trial {idx}")
-        except FileNotFoundError:
-            pass
-    if len(grids_3d) >= 2:
-        plot_3d_slice_montage(
-            grids_3d, labels_3d,
-            save_path=os.path.join(config.IMAGES_3D_DIR, "slice_montage.png"),
-        )
-
-    # ---- 3D pattern analysis across trials ----
+    # 3D pattern analysis across trials
     pat = analyze_3d_patterns_across_trials(
         config.GRIDS_3D_DIR, metadata,
         background=config.INITIAL_GRAINS_3D,
@@ -267,22 +170,12 @@ def analyze_3d(args):
     print(json.dumps({k: v for k, v in pat.items()
                       if k != "avg_slice_changed_fractions"}, indent=2))
 
-    # ---- Slice changed fraction profile ----
-    if pat.get("avg_slice_changed_fractions"):
-        plot_slice_changed_fraction_profile(
-            pat["avg_slice_changed_fractions"],
-            save_path=os.path.join(config.IMAGES_3D_DIR,
-                                   "slice_changed_fraction_profile.png"),
-            title=f"Changed Fraction per z-slice "
-                  f"(avg over {pat['samples_analyzed']} trials)",
-        )
-
     # Save stats as JSON
     stats_path = os.path.join(config.STATS_3D_DIR, "analysis.json")
     with open(stats_path, "w") as f:
         json.dump({**stats, "patterns": pat}, f, indent=2)
 
-    print(f"\n3D analysis complete. Visualizations in {config.IMAGES_3D_DIR}")
+    print(f"\n3D analysis complete. Stats saved to {config.STATS_3D_DIR}")
 
 
 # ---------------------------------------------------------------------------

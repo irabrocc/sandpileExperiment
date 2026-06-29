@@ -102,7 +102,6 @@ def run_batch(n: int, num_trials: int,
               threshold: int | None = None,
               initial_grains: int | None = None,
               base_seed: int | None = None,
-              save_interval: int | None = None,
               num_perturb: int | None = None,
               perturb_amount: int | None = None) -> list[dict]:
     """Run *num_trials* 3D sandpile experiments.
@@ -122,7 +121,6 @@ def run_batch(n: int, num_trials: int,
     threshold : int | None
     initial_grains : int | None
     base_seed : int | None
-    save_interval : int | None
     num_perturb : int | None
     perturb_amount : int | None
 
@@ -138,8 +136,6 @@ def run_batch(n: int, num_trials: int,
         initial_grains = config.INITIAL_GRAINS_3D
     if base_seed is None:
         base_seed = config.BASE_SEED
-    if save_interval is None:
-        save_interval = config.SAVE_INTERVAL
     if num_perturb is None:
         num_perturb = config.NUM_PERTURB_SITES
     if perturb_amount is None:
@@ -151,10 +147,6 @@ def run_batch(n: int, num_trials: int,
     os.makedirs(stats_dir, exist_ok=True)
 
     all_results = []
-    topple_list = []
-    distinct_list = []
-    max_grain_list = []
-    distributions = []
 
     start_time = time.time()
 
@@ -174,83 +166,17 @@ def run_batch(n: int, num_trials: int,
 
         meta = {k: v for k, v in result.items() if k != "grid"}
         all_results.append(meta)
-        topple_list.append(result["topples"])
-        distinct_list.append(result["distinct"])
-        max_grain_list.append(result["max_grains"])
 
-        for g, c in result["distribution"].items():
-            while len(distributions) <= g:
-                distributions.append(0)
-            distributions[g] += c
-
-        if (trial_idx + 1) % save_interval == 0 or trial_idx == num_trials - 1:
-            _save_intermediate(
-                trial_idx + 1, all_results, topple_list, distinct_list,
-                max_grain_list, distributions, stats_dir, start_time
-            )
-
-    _save_final(all_results, topple_list, distinct_list, max_grain_list,
-                distributions, stats_dir, start_time, num_trials, n)
-
-    return all_results
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _save_intermediate(done: int, all_results, topple_list, distinct_list,
-                       max_grain_list, distributions, stats_dir, start_time):
+    # Save raw metadata
     elapsed = time.time() - start_time
-    agg = {
-        "trials_completed": done,
-        "elapsed_sec": round(elapsed, 1),
-        "mean_topples": float(np.mean(topple_list)),
-        "median_topples": float(np.median(topple_list)),
-        "max_topples": int(np.max(topple_list)),
-        "min_topples": int(np.min(topple_list)),
-        "mean_distinct_sites": float(np.mean(distinct_list)),
-        "max_grains_observed": int(np.max(max_grain_list)),
-        "distribution": distributions,
-    }
-    path = os.path.join(stats_dir, f"aggregate_{done:06d}.json")
-    with open(path, "w") as f:
-        json.dump(agg, f, indent=2)
-
-
-def _save_final(all_results, topple_list, distinct_list, max_grain_list,
-                distributions, stats_dir, start_time, num_trials, n):
-    elapsed = time.time() - start_time
-
     meta_path = os.path.join(stats_dir, "all_metadata.json")
     with open(meta_path, "w") as f:
         json.dump(all_results, f, indent=2)
 
-    summary = {
-        "num_trials": num_trials,
-        "n": n,
-        "total_elapsed_sec": round(elapsed, 1),
-        "trials_per_sec": round(num_trials / elapsed, 2) if elapsed > 0 else 0,
-        "topple_stats": {
-            "mean": float(np.mean(topple_list)),
-            "median": float(np.median(topple_list)),
-            "std": float(np.std(topple_list)),
-            "min": int(np.min(topple_list)),
-            "max": int(np.max(topple_list)),
-        },
-        "distinct_site_stats": {
-            "mean": float(np.mean(distinct_list)),
-            "median": float(np.median(distinct_list)),
-            "std": float(np.std(distinct_list)),
-        },
-        "max_grains_overall": int(np.max(max_grain_list)),
-        "distribution": distributions,
-    }
-    summary_path = os.path.join(stats_dir, "summary.json")
-    with open(summary_path, "w") as f:
-        json.dump(summary, f, indent=2)
-
     print(f"\nDone. {num_trials} trials in {elapsed:.1f}s "
           f"({num_trials / elapsed:.1f} trials/s)")
-    print(f"Topples — mean: {summary['topple_stats']['mean']:.1f}, "
-          f"max: {summary['topple_stats']['max']}")
+
+    return all_results
+
+
+
